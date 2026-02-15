@@ -14,7 +14,8 @@ with st.sidebar:
     # Center the image using columns
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("Images/Logo 1.png", width=200)
+        if os.path.exists("Images/Logo 1.png"):
+            st.image("Images/Logo 1.png", width=200)
 # Language Selection
 lang = st.sidebar.selectbox("🌐 Select Language / மொழியையை தேர்வு செல்லவும்", ["English", "Tamil"])
 
@@ -135,14 +136,16 @@ with st.sidebar:
     st.write("jananiviswa05@gmail.com")
 
 # Load Models
-heart_model = pickle.load(open('Saved Models/heart_disease_model.sav', 'rb'))
-heart_scaler = pickle.load(open('Saved Models/scaler_heart.sav', 'rb'))
-
-diabetes_model = pickle.load(open('Saved Models/diabetes_model.sav', 'rb'))
-diabetes_scaler = pickle.load(open('Saved Models/scaler_diabetes.sav', 'rb'))
-
-parkinsons_model = pickle.load(open('Saved Models/parkinsons_model.sav', 'rb'))
-parkinsons_scaler = pickle.load(open('Saved Models/scaler_parkinsons.sav', 'rb'))
+try:
+    heart_model = pickle.load(open('Saved_Models/heart_disease_model.sav', 'rb'))
+    heart_scaler = pickle.load(open('Saved_Models/scaler_heart.sav', 'rb'))
+    diabetes_model = pickle.load(open('Saved_Models/diabetes_model.sav', 'rb'))
+    diabetes_scaler = pickle.load(open('Saved_Models/scaler_diabetes.sav', 'rb'))
+    parkinsons_model = pickle.load(open('Saved_Models/parkinsons_model.sav', 'rb'))
+    parkinsons_scaler = pickle.load(open('Saved_Models/scaler_parkinsons.sav', 'rb'))
+except FileNotFoundError as e:
+    st.error(f"Error loading model files: {e}")
+    st.stop()
 
 # Prediction functions
 def predict_heart_disease(features):
@@ -161,51 +164,62 @@ class PDF(FPDF):
     def __init__(self):
         super().__init__()
         self.set_auto_page_break(auto=True, margin=15)
+        self.fonts_available = False
 
         # Font paths
         regular_font_path = "Font/NotoSansTamil-Regular.ttf"
         bold_font_path = "Font/NotoSansTamil-Bold.ttf"
 
-        # Font availability check
-        if not os.path.exists(regular_font_path) or not os.path.exists(bold_font_path):
-            raise FileNotFoundError("Required Tamil fonts not found in 'Font/' directory.")
-
-        self.add_font("Noto", "", regular_font_path, uni=True)
-        self.add_font("Noto", "B", bold_font_path, uni=True)
-
-        self.set_font("Noto", "", 12)
+        # Font availability check with graceful fallback
+        if os.path.exists(regular_font_path) and os.path.exists(bold_font_path):
+            try:
+                self.add_font("Noto", "", regular_font_path, uni=True)
+                self.add_font("Noto", "B", bold_font_path, uni=True)
+                self.fonts_available = True
+                self.set_font("Noto", "", 12)
+            except Exception:
+                self.set_font("Arial", "", 12)
+        else:
+            self.set_font("Arial", "", 12)
 
     def header(self):
         logo_path = "Images/Logo 1.png"
         if os.path.exists(logo_path):
             self.image(logo_path, x=10, y=8, w=25)
-        self.set_font("Noto", "B", 14)
+        font_name = "Noto" if self.fonts_available else "Arial"
+        self.set_font(font_name, "B", 14)
         self.cell(0, 10, "Health Diagnosis Report", ln=True, align='C')
         self.ln(5)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font("Noto", "", 9)
+        font_name = "Noto" if self.fonts_available else "Arial"
+        self.set_font(font_name, "", 9)
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
+
+def sanitize_for_pdf(text):
+    """Convert text to latin-1 safe format by removing non-ASCII characters"""
+    return text.encode('latin-1', errors='replace').decode('latin-1')
 
 def generate_pdf(name, result, advice, T, inputs_dict):
     pdf = PDF()
     pdf.add_page()
 
     # Main Title
-    pdf.set_font("Noto", "B", 16)
-    pdf.cell(0, 10, T["title"], ln=True, align='C')
+    font_name = "Noto" if pdf.fonts_available else "Arial"
+    pdf.set_font(font_name, "B", 16)
+    pdf.cell(0, 10, sanitize_for_pdf(T["title"]), ln=True, align='C')
     pdf.ln(8)
 
     # Patient Name
-    pdf.set_font("Noto", "B", 12)
-    pdf.cell(0, 10, f"{T['inputs_heart']['name']}: {name}", ln=True)
+    pdf.set_font(font_name, "B", 12)
+    pdf.cell(0, 10, f"Patient Name: {sanitize_for_pdf(name)}", ln=True)
     pdf.ln(4)
 
     # Health Data Table
-    pdf.set_font("Noto", "B", 12)
+    pdf.set_font(font_name, "B", 12)
     pdf.cell(0, 10, "Entered Health Data:", ln=True)
-    pdf.set_font("Noto", "", 11)
+    pdf.set_font(font_name, "", 11)
 
     pdf.set_fill_color(245, 245, 245)
     col_width_label = 70
@@ -213,8 +227,8 @@ def generate_pdf(name, result, advice, T, inputs_dict):
     row_height = 8
 
     for label, value in inputs_dict.items():
-        label_text = str(label)
-        value_text = str(value)
+        label_text = sanitize_for_pdf(str(label))
+        value_text = sanitize_for_pdf(str(value))
         if len(value_text) > 50:
             value_text = value_text[:47] + "..."
         pdf.cell(col_width_label, row_height, label_text, border=1, fill=True)
@@ -223,29 +237,35 @@ def generate_pdf(name, result, advice, T, inputs_dict):
     pdf.ln(6)
 
     # Prediction Result
-    pdf.set_font("Noto", "B", 12)
-    pdf.cell(0, 10, T["diagnose"] + ":", ln=True)
-    pdf.set_font("Noto", "", 11)
-    pdf.multi_cell(0, 8, result)
+    pdf.set_font(font_name, "B", 12)
+    pdf.cell(0, 10, sanitize_for_pdf(T["diagnose"]) + ":", ln=True)
+    pdf.set_font(font_name, "", 11)
+    pdf.multi_cell(0, 8, sanitize_for_pdf(result))
     pdf.ln(4)
 
     # Advice
-    pdf.set_font("Noto", "B", 12)
-    pdf.cell(0, 10, T["advice"] + ":", ln=True)
-    pdf.set_font("Noto", "", 11)
-    pdf.multi_cell(0, 8, advice)
+    pdf.set_font(font_name, "B", 12)
+    pdf.cell(0, 10, sanitize_for_pdf(T["advice"]) + ":", ln=True)
+    pdf.set_font(font_name, "", 11)
+    pdf.multi_cell(0, 8, sanitize_for_pdf(advice))
     pdf.ln(4)
 
     # Timestamp
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    pdf.set_font("Noto", "", 9)
+    pdf.set_font(font_name, "", 9)
     pdf.cell(0, 10, f"Generated on: {now}", ln=True)
 
-    # ✅ Generate PDF bytes without `.encode()`
-    pdf_bytes = pdf.output(dest='S')  # This is already a bytearray
-    b64 = base64.b64encode(pdf_bytes).decode('utf-8')
-
-    return f'<a href="data:application/pdf;base64,{b64}" download="Health_Report.pdf">{T["download"]}</a>'
+    # Generate PDF with error handling
+    try:
+        pdf_bytes = pdf.output(dest='S')
+        # Ensure pdf_bytes is bytes type
+        if isinstance(pdf_bytes, str):
+            pdf_bytes = pdf_bytes.encode('latin-1')
+        
+        b64 = base64.b64encode(pdf_bytes).decode('utf-8')
+        return f'<a href="data:application/pdf;base64,{b64}" download="Health_Report.pdf">{sanitize_for_pdf(T["download"])}</a>'
+    except (UnicodeEncodeError, TypeError) as e:
+        return '<p style="color:red;">PDF generation encountered issues. Please use ASCII characters in patient name.</p>'
 
 if selection == T["home"]:
     st.title(T["title"])
@@ -312,6 +332,7 @@ elif selection == T["heart"]:
             st.success(f"✅ {T['no_risk']} {T['heart']}")
 
         input_summary = {
+        inputs["name"]: name,
         inputs["age"]: age,
         inputs["sex"]: sex,
         inputs["cp"]: cp,
@@ -355,6 +376,7 @@ elif selection == T["diabetes"]:
             st.success(f"✅ {T['no_risk']} {T['diabetes']}")
 
         input_summary = {
+        inputs["name"]: name,
         inputs["age"]: age,
         inputs["sex"]: sex,
         inputs["pregnancies"]: pregnancies,
@@ -419,7 +441,7 @@ elif selection == T["parkinsons"]:
 
         st.info(f"{T['advice']}: {advice}")
 
-    
+
 
 
 
