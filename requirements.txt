@@ -1,0 +1,15 @@
+# Backend Application Dependencies
+Flask>=3.0.0
+flask-cors>=4.0.0
+flask-limiter>=3.0.0
+marshmallow>=3.0.0
+gunicorn>=20.1.0
+
+# Data Science & Machine Learning Dependencies
+numpy>=1.24.3
+pandas>=2.0.0
+scikit-learn==1.2.2
+xgboost>=2.0.0
+lightgbm>=4.0.0
+optuna>=3.0.0
+imbalanced-learn>=0.11.0
