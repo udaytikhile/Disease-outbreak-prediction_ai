@@ -123,7 +123,7 @@ const HealthTips = ({ onClose }) => {
                     <p className="tips-subtitle">Comprehensive medical information, prevention tips & dietary advice</p>
                 </div>
                 <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
-                    ← Back
+                    ← Back to Home
                 </button>
             </div>
 

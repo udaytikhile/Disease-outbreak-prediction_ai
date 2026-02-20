@@ -28,14 +28,17 @@ export const usePredictionHistory = () => {
       }
     }
 
+    const handleStorageEvent = (e) => {
+      if (e.key === STORAGE_KEY) handleSync()
+    }
+
     window.addEventListener(SYNC_EVENT, handleSync)
     // Also sync on storage changes (e.g. from other tabs)
-    window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEY) handleSync()
-    })
+    window.addEventListener('storage', handleStorageEvent)
 
     return () => {
       window.removeEventListener(SYNC_EVENT, handleSync)
+      window.removeEventListener('storage', handleStorageEvent)
     }
   }, [])
 

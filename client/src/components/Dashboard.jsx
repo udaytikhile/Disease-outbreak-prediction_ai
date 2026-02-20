@@ -98,7 +98,7 @@ const Dashboard = ({ onClose }) => {
                         <option value="3months">Last 3 Months</option>
                     </select>
                     <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
-                        ← Back
+                        ← Back to Home
                     </button>
                 </div>
             </div>

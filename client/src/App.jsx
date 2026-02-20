@@ -1,33 +1,70 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { usePredictionHistory } from './hooks/usePredictionHistory'
+import config from './config'
+import Navbar from './components/Navbar'
 import HomePage from './components/HomePage'
 import HeartForm from './components/HeartForm'
 import DiabetesForm from './components/DiabetesForm'
 import ParkinsonsForm from './components/ParkinsonsForm'
 import ResultCard from './components/ResultCard'
 import HistoryPage from './components/HistoryPage'
-import ThemeToggle from './components/ThemeToggle'
 import ToastContainer, { showToast } from './components/Toast'
 import UserProfile from './components/UserProfile'
 import HealthTips from './components/HealthTips'
 import Dashboard from './components/Dashboard'
 import SymptomChecker from './components/SymptomChecker'
 
-const API_URL = 'http://localhost:5001/api'
+// Defined outside App to prevent re-mounting on every render (BUG-7 fix)
+const PredictionLayout = ({ children, title, error, result }) => (
+  <div className="prediction-page">
+    <div className="container">
+      <div className="glass-card prediction-card-wrapper">
+        <h2 className="prediction-page-title">{title}</h2>
+        {children}
+
+        {error && (
+          <div className="error-banner">
+            <span className="error-banner-icon">⚠️</span>
+            <div>
+              <strong>Error</strong>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
+
+        {result && <ResultCard result={result} />}
+      </div>
+
+      <footer className="text-center mt-4" style={{ color: 'var(--text-light)', padding: '2rem 0' }}>
+        <p>© 2026 Prexiza AI | Made with ❤️ for better health awareness</p>
+        <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+          ⚠️ This tool is for educational purposes only. Always consult a medical professional.
+        </p>
+      </footer>
+    </div>
+  </div>
+)
 
 function App() {
-  const [selectedDisease, setSelectedDisease] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [currentPage, setCurrentPage] = useState('home') // home, history, profile, tips, dashboard, checker
   const { addPrediction } = usePredictionHistory()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // Initialize theme on mount
   useEffect(() => {
     const saved = localStorage.getItem('theme')
     document.documentElement.setAttribute('data-theme', saved || 'light')
   }, [])
+
+  // Clear result/error on navigation
+  useEffect(() => {
+    setResult(null)
+    setError(null)
+  }, [location.pathname])
 
   // Get user name for personalization
   const getUserName = () => {
@@ -43,7 +80,7 @@ function App() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_URL}/predict/${diseaseType}`, {
+      const response = await fetch(`${config.API_URL}/predict/${diseaseType}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +110,7 @@ function App() {
         showToast(data.error || 'Prediction failed', 'error')
       }
     } catch (error) {
-      setError(`Connection error: Make sure the backend server is running at ${API_URL}`)
+      setError(`Connection error: Make sure the backend server is running at ${config.API_URL}`)
       showToast('Connection error. Is the backend running?', 'error')
       console.error('API Error:', error)
     } finally {
@@ -82,149 +119,58 @@ function App() {
   }
 
   const handleReset = () => {
-    setSelectedDisease(null)
     setResult(null)
     setError(null)
-    setCurrentPage('home')
+    navigate('/')
   }
 
-  const handleSelectDisease = (disease) => {
-    setSelectedDisease(disease)
-    setCurrentPage('home')
-    setResult(null)
-    setError(null)
-  }
-
-  const renderForm = () => {
-    switch (selectedDisease) {
-      case 'heart':
-        return <HeartForm onSubmit={(data) => handlePrediction('heart', data)} loading={loading} />
-      case 'diabetes':
-        return <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
-      case 'parkinsons':
-        return <ParkinsonsForm onSubmit={(data) => handlePrediction('parkinsons', data)} loading={loading} />
-      default:
-        return null
-    }
-  }
-
-  // Render current page
-  if (currentPage === 'history') {
-    return (
-      <>
-        <ThemeToggle />
-        <ToastContainer />
-        <HistoryPage onClose={() => setCurrentPage('home')} />
-      </>
-    )
-  }
-
-  if (currentPage === 'profile') {
-    return (
-      <>
-        <ThemeToggle />
-        <ToastContainer />
-        <UserProfile onClose={() => setCurrentPage('home')} />
-      </>
-    )
-  }
-
-  if (currentPage === 'tips') {
-    return (
-      <>
-        <ThemeToggle />
-        <ToastContainer />
-        <HealthTips onClose={() => setCurrentPage('home')} />
-      </>
-    )
-  }
-
-  if (currentPage === 'dashboard') {
-    return (
-      <>
-        <ThemeToggle />
-        <ToastContainer />
-        <Dashboard onClose={() => setCurrentPage('home')} />
-      </>
-    )
-  }
-
-  if (currentPage === 'checker') {
-    return (
-      <>
-        <ThemeToggle />
-        <ToastContainer />
-        <SymptomChecker
-          onClose={() => setCurrentPage('home')}
-          onStartAssessment={(disease) => {
-            handleSelectDisease(disease)
-          }}
-        />
-      </>
-    )
-  }
 
   return (
     <div className="app-container">
-      <ThemeToggle />
+      <Navbar onNavigate={(path) => navigate(path)} />
       <ToastContainer />
-      {!selectedDisease ? (
-        <HomePage
-          onSelectDisease={handleSelectDisease}
-          onViewHistory={() => setCurrentPage('history')}
-          onViewProfile={() => setCurrentPage('profile')}
-          onViewTips={() => setCurrentPage('tips')}
-          onViewDashboard={() => setCurrentPage('dashboard')}
-          onViewChecker={() => setCurrentPage('checker')}
-          userName={getUserName()}
-        />
-      ) : (
-        <div className="container">
-          <div className="card">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <button className="btn btn-secondary" onClick={handleReset}>
-                ← Back to Home
-              </button>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button className="btn btn-secondary" onClick={() => setCurrentPage('dashboard')} style={{ width: 'auto' }}>
-                  📊 Dashboard
-                </button>
-                <button className="btn btn-secondary" onClick={() => setCurrentPage('history')} style={{ width: 'auto' }}>
-                  📋 History
-                </button>
-                <button className="btn btn-secondary" onClick={() => setCurrentPage('tips')} style={{ width: 'auto' }}>
-                  🏥 Health Info
-                </button>
-              </div>
-            </div>
+      <Routes>
+        <Route path="/" element={
+          <HomePage
+            onSelectDisease={(id) => navigate(`/predict/${id}`)}
+            onViewHistory={() => navigate('/history')}
+            onViewProfile={() => navigate('/profile')}
+            onViewTips={() => navigate('/tips')}
+            onViewDashboard={() => navigate('/dashboard')}
+            onViewChecker={() => navigate('/checker')}
+            userName={getUserName()}
+          />
+        } />
 
-            {renderForm()}
+        <Route path="/predict/heart" element={
+          <PredictionLayout title="❤️ Heart Disease Prediction" error={error} result={result}>
+            <HeartForm onSubmit={(data) => handlePrediction('heart', data)} loading={loading} />
+          </PredictionLayout>
+        } />
 
-            {error && (
-              <div style={{
-                marginTop: '2rem',
-                padding: '1rem',
-                background: 'rgba(244, 92, 67, 0.1)',
-                border: '2px solid #f45c43',
-                borderRadius: '8px',
-                color: '#f45c43',
-                fontWeight: '500'
-              }}>
-                ⚠️ Error: {error}
-              </div>
-            )}
+        <Route path="/predict/diabetes" element={
+          <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result}>
+            <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
+          </PredictionLayout>
+        } />
 
-            {result && <ResultCard result={result} />}
-          </div>
+        <Route path="/predict/parkinsons" element={
+          <PredictionLayout title="🧠 Parkinson's Prediction" error={error} result={result}>
+            <ParkinsonsForm onSubmit={(data) => handlePrediction('parkinsons', data)} loading={loading} />
+          </PredictionLayout>
+        } />
 
-          <footer className="text-center mt-4" style={{ color: 'var(--text-light)', padding: '2rem 0' }}>
-            <p>© 2026 Checkup Buddy | Made with ❤️ for better health awareness</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-              ⚠️ This tool is for educational purposes only. Always consult a medical professional.
-            </p>
-          </footer>
-        </div>
-      )}
+        <Route path="/history" element={<HistoryPage onClose={() => navigate('/')} />} />
+        <Route path="/profile" element={<UserProfile onClose={() => navigate('/')} />} />
+        <Route path="/tips" element={<HealthTips onClose={() => navigate('/')} />} />
+        <Route path="/dashboard" element={<Dashboard onClose={() => navigate('/')} />} />
+        <Route path="/checker" element={
+          <SymptomChecker
+            onClose={() => navigate('/')}
+            onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
+          />
+        } />
+      </Routes>
     </div>
   )
 }

@@ -31,8 +31,8 @@ const DiabetesForm = ({ onSubmit, loading }) => {
         if (formData.insulin === '' || isNaN(formData.insulin) || Number(formData.insulin) < 0 || Number(formData.insulin) > 900) {
             newErrors.insulin = 'Must be 0-900 μU/mL'
         }
-        if (formData.bmi === '' || isNaN(formData.bmi) || Number(formData.bmi) < 10 || Number(formData.bmi) > 70) {
-            newErrors.bmi = 'Must be 10-70'
+        if (formData.bmi === '' || isNaN(formData.bmi) || Number(formData.bmi) < 0 || Number(formData.bmi) > 70) {
+            newErrors.bmi = 'Must be 0-70'
         }
         if (formData.dpf === '' || isNaN(formData.dpf) || Number(formData.dpf) < 0 || Number(formData.dpf) > 3) {
             newErrors.dpf = 'Must be 0-3'

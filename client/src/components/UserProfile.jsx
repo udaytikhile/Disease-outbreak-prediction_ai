@@ -63,7 +63,7 @@ const UserProfile = ({ onClose }) => {
                     <p className="profile-subtitle">Save your health info for personalized experience</p>
                 </div>
                 <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
-                    ← Back
+                    ← Back to Home
                 </button>
             </div>
 

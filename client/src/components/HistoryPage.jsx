@@ -12,7 +12,7 @@ const HistoryPage = ({ onClose }) => {
           <p className="history-subtitle">View your past predictions and insights</p>
         </div>
         <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
-          ← Back
+          ← Back to Home
         </button>
       </div>
 

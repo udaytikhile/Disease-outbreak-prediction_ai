@@ -101,9 +101,12 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                 setAnswers(prev => ({ ...prev, [questionId]: updated }))
             }
         } else {
-            setAnswers(prev => ({ ...prev, [questionId]: value }))
-            // Auto advance for single select
-            if (!isLast) {
+            const updatedAnswers = { ...answers, [questionId]: value }
+            setAnswers(updatedAnswers)
+            // Recompute visible questions with the NEW answers to get correct isLast
+            const updatedVisible = questions.filter(q => !q.showIf || q.showIf(updatedAnswers))
+            const willBeAtLast = step >= updatedVisible.length - 1
+            if (!willBeAtLast) {
                 setTimeout(() => setStep(s => s + 1), 300)
             }
         }

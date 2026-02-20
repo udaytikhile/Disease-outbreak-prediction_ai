@@ -24,11 +24,11 @@ const HeartForm = ({ onSubmit, loading }) => {
         if (formData.age === '' || isNaN(formData.age) || Number(formData.age) < 1 || Number(formData.age) > 120) {
             newErrors.age = 'Must be 1-120 years'
         }
-        if (formData.trestbps === '' || isNaN(formData.trestbps) || Number(formData.trestbps) < 50 || Number(formData.trestbps) > 250) {
-            newErrors.trestbps = 'Must be 50-250 mm Hg'
+        if (formData.trestbps === '' || isNaN(formData.trestbps) || Number(formData.trestbps) < 0 || Number(formData.trestbps) > 300) {
+            newErrors.trestbps = 'Must be 0-300 mm Hg'
         }
-        if (formData.chol === '' || isNaN(formData.chol) || Number(formData.chol) < 100 || Number(formData.chol) > 600) {
-            newErrors.chol = 'Must be 100-600 mg/dl'
+        if (formData.chol === '' || isNaN(formData.chol) || Number(formData.chol) < 0 || Number(formData.chol) > 600) {
+            newErrors.chol = 'Must be 0-600 mg/dl'
         }
         if (formData.thalach === '' || isNaN(formData.thalach) || Number(formData.thalach) < 60 || Number(formData.thalach) > 220) {
             newErrors.thalach = 'Must be 60-220 bpm'
@@ -115,8 +115,8 @@ const HeartForm = ({ onSubmit, loading }) => {
                         onChange={handleChange}
                         placeholder="e.g., 120"
                         required
-                        min="50"
-                        max="250"
+                        min="0"
+                        max="300"
                         className={errors.trestbps ? 'input-error' : ''}
                     />
                     {errors.trestbps && <span className="error-text">⚠️ {errors.trestbps}</span>}
@@ -132,7 +132,7 @@ const HeartForm = ({ onSubmit, loading }) => {
                         onChange={handleChange}
                         placeholder="e.g., 200"
                         required
-                        min="100"
+                        min="0"
                         max="600"
                         className={errors.chol ? 'input-error' : ''}
                     />
@@ -224,6 +224,7 @@ const HeartForm = ({ onSubmit, loading }) => {
                         <option value="0">Normal</option>
                         <option value="1">Fixed Defect</option>
                         <option value="2">Reversible Defect</option>
+                        <option value="3">Unknown / Other</option>
                     </select>
                 </div>
             </div>
