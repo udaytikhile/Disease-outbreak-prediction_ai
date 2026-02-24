@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { InputCard, Section, ProgressBar, convertNumericFields } from '../common/FormComponents'
+import { InputCard, Section, ProgressBar } from '../common/FormComponents'
+import { convertNumericFields } from '../../utils/formUtils'
 
 const HEART_STRING_FIELDS = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
 
