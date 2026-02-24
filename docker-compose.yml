@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  # ─── Flask API Backend ────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: outbreak-api
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_PORT=5001
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-jwt-secret-in-production}
+      - DATABASE_URL=postgresql://outbreak:outbreak@db:5432/outbreak_db
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=http://localhost,http://localhost:80
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - ./ml/models:/app/ml/models:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  # ─── React Frontend (Nginx) ──────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: outbreak-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - app-net
+
+  # ─── PostgreSQL Database ──────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: outbreak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: outbreak
+      POSTGRES_PASSWORD: outbreak
+      POSTGRES_DB: outbreak_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U outbreak -d outbreak_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  # ─── Redis (Rate Limiting + Cache) ───────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: outbreak-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+volumes:
+  pgdata:
+
+networks:
+  app-net:
+    driver: bridge

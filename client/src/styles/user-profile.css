@@ -1,0 +1,98 @@
+/* ========================================
+   USER PROFILE PAGE
+   ======================================== */
+
+.profile-container {
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeInUp 0.6s ease;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.profile-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.profile-subtitle {
+  color: var(--text-light);
+  font-size: 1.05rem;
+}
+
+.profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-section {
+  background: var(--bg-white);
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  animation: fadeInUp 0.5s ease both;
+  transition: var(--transition);
+}
+
+.profile-section:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.profile-section:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.profile-section:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.profile-section:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-color);
+}
+
+.profile-section h3 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.profile-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.profile-privacy {
+  text-align: center;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(124, 58, 237, 0.06) 100%);
+  border-radius: var(--radius-md);
+  color: var(--text-light);
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .profile-section {
+  background: #1e293b;
+  border-color: #334155;
+}
+

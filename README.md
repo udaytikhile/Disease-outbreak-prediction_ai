@@ -1,99 +1,118 @@
-# 🏥 Disease Outbreak Prediction
+# Medixa AI — Disease Outbreak & Prediction System 🩺⚡
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![React](https://img.shields.io/badge/React-19.2.0-blue?logo=react)
-![Flask](https://img.shields.io/badge/Flask-3.0-orange?logo=flask)
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
+![React](https://img.shields.io/badge/React-19.0.0-blue?style=for-the-badge&logo=react)
+![Vite](https://img.shields.io/badge/Vite-7.3.1-646CFF?style=for-the-badge&logo=vite)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python)
+![AI/ML](https://img.shields.io/badge/AI_Powered-Explainable_ML-00C7B7?style=for-the-badge)
 
-An AI-powered disease prediction platform built with **React**, **Flask**, and **scikit-learn** to proactively predict and analyze upcoming health risks and potential disease outbreaks based on user-entered clinical data.
+Medixa AI is an advanced, AI-powered clinical health screening platform designed to empower early detection through intelligent risk assessment. It features predictive machine learning models for multiple diseases, explainable AI (XAI) via SHAP values, and an LLM-powered interactive symptom checker with emergency triage.
 
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li><a href="#-features">Features</a></li>
-    <li><a href="#-available-models">Available Models</a></li>
-    <li><a href="#-tech-stack">Tech Stack</a></li>
-    <li><a href="#-project-structure">Project Structure</a></li>
-    <li><a href="#-getting-started">Getting Started</a></li>
-    <li><a href="#-contributing">Contributing</a></li>
-    <li><a href="#-license">License</a></li>
-  </ol>
-</details>
+> **Disclaimer:** This tool is designed for **educational and preventive awareness purposes only**. It is not a substitute for professional medical advice, diagnosis, or treatment.
 
-## ✨ Features
+---
 
-- **Predictive Analytics**: Utilizes various machine learning models to predict multiple diseases.
-- **Modern UI**: A sleek, user-friendly interface built with React and styled beautifully.
-- **RESTful API**: Standardized backend architecture using Flask, providing scalable model inference capabilities.
-- **Easily Extensible**: Designed so new machine learning models can be dropped in easily.
+## ✨ Key Features
 
-## 🧬 Available Models
+- **🧠 Predictive Disease Models**: Accurate risk assessment for **Heart Disease**, **Diabetes**, **Kidney Disease**, and **Depression** using trained ML models.
+- **📊 Explainable AI (SHAP)**: Transparent predictions showing exactly which clinical biomarkers (e.g., age, BMI, glucose) contributed to the risk score and by how much.
+- **💬 Conversational Symptom Checker**: An interactive, LLM-driven chat interface that analyzes symptoms, asks follow-up questions, and flags potential medical emergencies for immediate triage.
+- **📈 Comprehensive Dashboard**: Visual analytics tracking your prediction history, health trends, and most frequently assessed conditions using interactive charts.
+- **📄 Medical Reports**: Instantly generate and download detailed PDF clinical reports of your assessment results.
+- **🔐 Privacy First**: All prediction history is stored locally in your browser. Encrypted and safe export capabilities (CSV/JSON).
+- **🌗 Dark/Light Mode**: Full glassmorphic UI with seamless theme switching for clinical and nighttime use.
 
-- ❤️ **Heart Disease Prediction**
-- 🩸 **Diabetes Prediction**
-- 🧠 **Parkinson's Disease Prediction**
+---
 
-## 💻 Tech Stack
+## 🛠️ Technology Stack
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | React, Vite, React Router |
-| **Backend** | Flask, Flask-CORS, RESTful APIs |
-| **Machine Learning** | scikit-learn, NumPy, Pandas |
+### Frontend (`/client`)
+- **Core**: React 19, React Router v7
+- **Build Tool**: Vite 7
+- **Styling**: Modular Vanilla CSS with CSS Variables & Glassmorphism
+- **Performance**: Code-split routing (`React.lazy`), memoized context, and strict WCAG accessibility standards.
 
-## 📁 Project Structure
+### Backend (`/server`)
+- **API Engine**: Python (Flask / FastAPI)
+- **Machine Learning**: Scikit-Learn, Pandas, NumPy
+- **Explainability**: SHAP (SHapley Additive exPlanations)
+- **NLP / Chat**: LLM integration for the Symptom Checker
 
-```text
-├── client/          # React + Vite frontend
-├── server/          # Flask REST API
-├── ml/
-│   ├── data/        # Training datasets (CSV)
-│   ├── models/      # Trained models (.sav)
-│   ├── notebooks/   # Jupyter notebooks for EDA and model training
-│   └── scripts/     # Training and evaluation scripts
-├── Makefile         # Centralized development commands
-└── README.md
-```
+---
 
 ## 🚀 Getting Started
 
-Follow these steps to set up the project locally on your machine.
-
 ### Prerequisites
+- Node.js (v18 or higher)
+- Python 3.10+
+- npm or yarn
 
-- [Node.js](https://nodejs.org/) (v16+)
-- [Python](https://www.python.org/) (v3.10+)
-- `make` utility
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/Disease-outbreak-prediction.git
-   cd Disease-outbreak-prediction
-   ```
-
-2. Install all dependencies for both frontend and backend using Make:
-   ```bash
-   make install
-   ```
-
-### Running the Application
-
-To start both the frontend (**Client**) and the backend (**API server**) simultaneously:
+### 1. Clone the Repository
 ```bash
-make dev
+git clone https://github.com/udaytikhile/Disease-outbreak-prediction_ai.git
+cd Disease-outbreak-prediction_ai
 ```
 
-- **Frontend Application** is now running at: `http://localhost:5173`
-- **Backend API Service** is available at: `http://localhost:5001`
+### 2. Setup the Backend (Python API)
+```bash
+cd server
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py  # Typically runs on http://localhost:5001
+```
 
-## 🤝 Contributing
+### 3. Setup the Frontend (React App)
+```bash
+cd client
+npm install
+npm run dev
+```
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+The application will be available at `http://localhost:5173`.
 
-Please check out our [Contributing Guidelines](CONTRIBUTING.md) for more details.
+---
 
-## 📄 License
+## 📂 Project Structure
 
-Distributed under the MIT License. See `LICENSE` for more information.
+```text
+Disease-outbreak-prediction_ai/
+├── client/                     # Frontend React SPA
+│   ├── public/                 # Static assets & icons
+│   └── src/
+│       ├── api/                # Isolated API clients (client.js, predictionApi.js)
+│       ├── components/         # React Components
+│       │   ├── common/         # Navbar, ErrorBoundary, Inputs, Toasts
+│       │   ├── dashboard/      # Analytics, Charts, History tables
+│       │   ├── pages/          # Home, Profile, 404
+│       │   ├── prediction/     # Disease forms (Heart, Diabetes, etc.) & Result cards
+│       │   └── symptom-checker/# LLM Chat interface
+│       ├── context/            # React Context (PredictionContext)
+│       ├── hooks/              # Custom hooks (usePredictionHistory)
+│       └── styles/             # Modular CSS architecture
+│
+├── server/                     # Backend API & ML Models
+│   ├── models/                 # Pre-trained .pkl models
+│   ├── routes/                 # API endpoint handlers
+│   └── ...
+│
+└── run.sh                      # Helper script to launch the full stack
+```
+
+---
+
+## 🛡️ Security & Performance
+- **Code Splitting**: The frontend utilizes dynamic imports, heavily reducing initial bundle size.
+- **Accessible Design**: Complies with comprehensive WCAG standards (Contrast, Screen Reader ARIA labels, Keyboard navigation).
+- **API Safety**: Unified HTTP client with mandatory timeout aborts and strict response validation.
+
+---
+
+## 👨‍💻 Author
+
+**Uday Tikhile**
+- [GitHub](https://github.com/udaytikhile)
+- [LinkedIn](https://www.linkedin.com/in/uday-tikhile-b63159374)
+
+---
+
+*Made with ❤️ for better health awareness.*

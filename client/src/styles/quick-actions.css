@@ -1,0 +1,64 @@
+/* ========================================
+   QUICK ACTIONS BAR
+   ======================================== */
+
+.quick-actions-section {
+  padding: 0;
+  position: relative;
+  z-index: 2;
+  margin-top: -2rem;
+}
+
+.quick-actions-grid {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1.75rem;
+  background: var(--bg-white);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  min-width: 110px;
+  box-shadow: var(--shadow-md);
+  animation: fadeInUp 0.5s ease both;
+}
+
+.quick-action-btn:hover {
+  transform: translateY(-6px) scale(1.04);
+  border-color: var(--action-color, var(--primary-color));
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.quick-action-btn:active {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.qa-icon {
+  font-size: 1.75rem;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.quick-action-btn:hover .qa-icon {
+  transform: scale(1.2);
+  animation: bounceSmall 0.5s ease;
+}
+
+.qa-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+

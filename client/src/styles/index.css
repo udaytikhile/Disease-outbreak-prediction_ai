@@ -1,0 +1,31 @@
+/**
+ * CSS Entry Point — Modular stylesheet imports.
+ *
+ * All styles are organized into feature-specific files.
+ * Import order matters: base must come first, dark-mode after features.
+ */
+
+/* ── Foundation ─────────────────────────────────────── */
+@import './base.css';
+@import './animations.css';
+
+/* ── Layout & Navigation ────────────────────────────── */
+@import './navbar.css';
+@import './theme-toggle.css';
+@import './toast.css';
+
+/* ── Page Styles ────────────────────────────────────── */
+@import './homepage.css';
+@import './prediction-forms.css';
+@import './dashboard.css';
+@import './history.css';
+@import './health-tips.css';
+@import './user-profile.css';
+@import './quick-actions.css';
+
+/* ── Feature Styles ─────────────────────────────────── */
+@import './symptom-checker.css';
+@import './loading.css';
+
+/* ── Theme Overrides (must be last) ─────────────────── */
+@import './dark-mode.css';

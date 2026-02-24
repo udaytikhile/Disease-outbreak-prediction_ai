@@ -28,5 +28,15 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# ─── ML (optional: uncomment to track models in git) ──
-# ml/models/*.sav
+# ─── ML (large binary models should not be in git) ──
+ml/models/*.pkl
+ml/models/*.sav
+
+# ─── Docker ───────────────────────────────────────
+.docker-data/
+
+# ─── Testing ──────────────────────────────────────
+.pytest_cache/
+htmlcov/
+coverage.xml
+.coverage

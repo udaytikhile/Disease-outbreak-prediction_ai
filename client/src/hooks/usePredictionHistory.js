@@ -92,6 +92,7 @@ export const usePredictionHistory = () => {
     if (history.length === 0) return stats
 
     let totalConfidence = 0
+    let validConfidenceCount = 0
     history.forEach(pred => {
       // Count by disease
       stats.byDisease[pred.disease] = (stats.byDisease[pred.disease] || 0) + 1
@@ -101,11 +102,14 @@ export const usePredictionHistory = () => {
       if (riskKey === 'high') stats.riskDistribution.high += 1
       else if (riskKey === 'low') stats.riskDistribution.low += 1
 
-      // Sum confidence
-      if (pred.confidence) totalConfidence += pred.confidence
+      // Sum confidence (only count entries that have a valid value)
+      if (pred.confidence != null) {
+        totalConfidence += pred.confidence
+        validConfidenceCount += 1
+      }
     })
 
-    stats.avgConfidence = totalConfidence / history.length
+    stats.avgConfidence = validConfidenceCount > 0 ? totalConfidence / validConfidenceCount : 0
 
     return stats
   }, [history])
@@ -122,7 +126,7 @@ export const usePredictionHistory = () => {
       new Date(p.timestamp).toLocaleString(),
       p.disease,
       p.risk_level,
-      p.confidence ? p.confidence.toFixed(2) : 'N/A',
+      p.confidence != null ? p.confidence.toFixed(2) : 'N/A',
       p.prediction === 1 ? 'Yes' : 'No'
     ])
 

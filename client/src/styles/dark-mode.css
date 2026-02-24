@@ -1,0 +1,114 @@
+/* ========================================
+   DARK MODE THEME
+   ======================================== */
+
+[data-theme="dark"] {
+  --primary-color: #818cf8;
+  --secondary-color: #a78bfa;
+  --success-color: #34d399;
+  --danger-color: #f87171;
+  --text-dark: #f1f5f9;
+  --text-light: #94a3b8;
+  --bg-light: #1e293b;
+  --bg-white: #0f172a;
+  --bg-page: #0b1120;
+  --border-color: #1e293b;
+
+  --glass-bg: rgba(15, 23, 42, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --accent-glow: 0 0 30px rgba(129, 140, 248, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+  --shadow-primary: 0 4px 14px rgba(129, 140, 248, 0.25);
+}
+
+[data-theme="dark"] body {
+  background: var(--bg-page);
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+}
+
+[data-theme="dark"] .disease-card {
+  background: var(--bg-light);
+}
+
+[data-theme="dark"] .disease-card.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%);
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select {
+  background: #1e293b;
+  border-color: #334155;
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .form-group input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .stat-card {
+  background: var(--bg-light);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .feature-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .disease-card-home {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .disease-card-header {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .disclaimer-card {
+  background: linear-gradient(135deg, #422006 0%, #78350f 100%);
+  border-left-color: #f59e0b;
+}
+
+[data-theme="dark"] .disclaimer-title {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .disclaimer-text {
+  color: #fde68a;
+}
+
+[data-theme="dark"] .history-container,
+[data-theme="dark"] .disease-stats,
+[data-theme="dark"] .history-list-section,
+[data-theme="dark"] .prediction-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .export-section {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #1e293b;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: var(--primary-color);
+  color: white;
+}
+

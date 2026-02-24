@@ -1,58 +1,60 @@
-import { useState, useEffect } from 'react'
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { usePredictionHistory } from './hooks/usePredictionHistory'
-import config from './config'
-import Navbar from './components/Navbar'
-import HomePage from './components/HomePage'
-import HeartForm from './components/HeartForm'
-import DiabetesForm from './components/DiabetesForm'
-import ParkinsonsForm from './components/ParkinsonsForm'
-import ResultCard from './components/ResultCard'
-import HistoryPage from './components/HistoryPage'
-import ToastContainer, { showToast } from './components/Toast'
-import UserProfile from './components/UserProfile'
-import HealthTips from './components/HealthTips'
-import Dashboard from './components/Dashboard'
-import SymptomChecker from './components/SymptomChecker'
+/**
+ * App — Root application component (routing shell).
+ *
+ * This component is intentionally thin: it handles only routing and layout.
+ * All business logic is in PredictionContext, all API calls in api/ modules,
+ * and all state management in context/ and hooks/.
+ *
+ * Architecture:
+ *   PredictionProvider → Navbar + Routes → Feature Components
+ *
+ * @module App
+ */
+import { useEffect, useMemo, lazy, Suspense } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { PredictionProvider, usePrediction } from './context/PredictionContext'
 
-// Defined outside App to prevent re-mounting on every render (BUG-7 fix)
-const PredictionLayout = ({ children, title, error, result }) => (
-  <div className="prediction-page">
-    <div className="container">
-      <div className="glass-card prediction-card-wrapper">
-        <h2 className="prediction-page-title">{title}</h2>
-        {children}
+// ── Common Components (eagerly loaded — always visible) ─────────────────
+import Navbar from './components/common/Navbar'
+import ToastContainer from './components/common/Toast'
+import LoadingAnalysis from './components/common/LoadingAnalysis'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
-        {error && (
-          <div className="error-banner">
-            <span className="error-banner-icon">⚠️</span>
-            <div>
-              <strong>Error</strong>
-              <p>{error}</p>
-            </div>
-          </div>
-        )}
+// ── Lazy-loaded route components (code-split per route) ─────────────────
+const PredictionLayout = lazy(() => import('./components/prediction/PredictionLayout'))
+const HeartForm = lazy(() => import('./components/prediction/HeartForm'))
+const DiabetesForm = lazy(() => import('./components/prediction/DiabetesForm'))
+const KidneyForm = lazy(() => import('./components/prediction/KidneyForm'))
+const DepressionForm = lazy(() => import('./components/prediction/DepressionForm'))
 
-        {result && <ResultCard result={result} />}
-      </div>
+const HomePage = lazy(() => import('./components/pages/HomePage'))
+const NotFoundPage = lazy(() => import('./components/pages/NotFoundPage'))
+const UserProfile = lazy(() => import('./components/pages/UserProfile'))
+const HealthTips = lazy(() => import('./components/pages/HealthTips'))
 
-      <footer className="text-center mt-4" style={{ color: 'var(--text-light)', padding: '2rem 0' }}>
-        <p>© 2026 Prexiza AI | Made with ❤️ for better health awareness</p>
-        <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-          ⚠️ This tool is for educational purposes only. Always consult a medical professional.
-        </p>
-      </footer>
-    </div>
-  </div>
-)
+const HistoryPage = lazy(() => import('./components/dashboard/HistoryPage'))
+const Dashboard = lazy(() => import('./components/dashboard/Dashboard'))
+const SymptomChecker = lazy(() => import('./components/symptom-checker/SymptomChecker'))
+const SymptomCheckerChat = lazy(() => import('./components/symptom-checker/SymptomCheckerChat'))
 
-function App() {
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
-  const { addPrediction } = usePredictionHistory()
+
+
+
+/**
+ * AppRoutes — Inner component that consumes PredictionContext.
+ * Separated from App to allow usePrediction() hook usage.
+ */
+function AppRoutes() {
   const navigate = useNavigate()
-  const location = useLocation()
+  const { loading, loadingDisease, result, error, handlePrediction } = usePrediction()
+
+  // Memoize to avoid JSON.parse on every render
+  const userName = useMemo(() => {
+    try {
+      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}')
+      return profile.name || ''
+    } catch { return '' }
+  }, [])
 
   // Initialize theme on mount
   useEffect(() => {
@@ -60,118 +62,91 @@ function App() {
     document.documentElement.setAttribute('data-theme', saved || 'light')
   }, [])
 
-  // Clear result/error on navigation
-  useEffect(() => {
-    setResult(null)
-    setError(null)
-  }, [location.pathname])
-
-  // Get user name for personalization
-  const getUserName = () => {
-    try {
-      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}')
-      return profile.name || ''
-    } catch { return '' }
-  }
-
-  const handlePrediction = async (diseaseType, formData) => {
-    setLoading(true)
-    setResult(null)
-    setError(null)
-
-    try {
-      const response = await fetch(`${config.API_URL}/predict/${diseaseType}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setResult(data)
-        addPrediction({
-          disease: data.disease,
-          risk_level: data.risk_level,
-          confidence: data.confidence,
-          prediction: data.prediction,
-          advice: data.advice
-        })
-        showToast(
-          data.risk_level === 'High'
-            ? `⚠️ High risk detected for ${data.disease}`
-            : `✅ Low risk for ${data.disease}`,
-          data.risk_level === 'High' ? 'warning' : 'success'
-        )
-      } else {
-        setError(data.error || 'An error occurred during prediction')
-        showToast(data.error || 'Prediction failed', 'error')
-      }
-    } catch (error) {
-      setError(`Connection error: Make sure the backend server is running at ${config.API_URL}`)
-      showToast('Connection error. Is the backend running?', 'error')
-      console.error('API Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleReset = () => {
-    setResult(null)
-    setError(null)
-    navigate('/')
-  }
-
-
   return (
     <div className="app-container">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Navbar onNavigate={(path) => navigate(path)} />
       <ToastContainer />
-      <Routes>
-        <Route path="/" element={
-          <HomePage
-            onSelectDisease={(id) => navigate(`/predict/${id}`)}
-            onViewHistory={() => navigate('/history')}
-            onViewProfile={() => navigate('/profile')}
-            onViewTips={() => navigate('/tips')}
-            onViewDashboard={() => navigate('/dashboard')}
-            onViewChecker={() => navigate('/checker')}
-            userName={getUserName()}
-          />
-        } />
+      {loading && <LoadingAnalysis disease={loadingDisease} />}
+      <ErrorBoundary>
+        <main id="main-content">
+          <Suspense fallback={<LoadingAnalysis disease="app" />}>
+            <Routes>
+              {/* Home */}
+              <Route path="/" element={
+                <HomePage
+                  onSelectDisease={(id) => navigate(`/predict/${id}`)}
+                  onViewHistory={() => navigate('/history')}
+                  onViewProfile={() => navigate('/profile')}
+                  onViewTips={() => navigate('/tips')}
+                  onViewDashboard={() => navigate('/dashboard')}
+                  onViewChecker={() => navigate('/checker')}
+                  userName={userName}
+                />
+              } />
 
-        <Route path="/predict/heart" element={
-          <PredictionLayout title="❤️ Heart Disease Prediction" error={error} result={result}>
-            <HeartForm onSubmit={(data) => handlePrediction('heart', data)} loading={loading} />
-          </PredictionLayout>
-        } />
+              {/* Prediction Forms */}
+              <Route path="/predict/heart" element={
+                <PredictionLayout title="❤️ Heart Disease Prediction" error={error} result={result}>
+                  <HeartForm onSubmit={(data) => handlePrediction('heart', data)} loading={loading} />
+                </PredictionLayout>
+              } />
 
-        <Route path="/predict/diabetes" element={
-          <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result}>
-            <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
-          </PredictionLayout>
-        } />
+              <Route path="/predict/diabetes" element={
+                <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result}>
+                  <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
+                </PredictionLayout>
+              } />
 
-        <Route path="/predict/parkinsons" element={
-          <PredictionLayout title="🧠 Parkinson's Prediction" error={error} result={result}>
-            <ParkinsonsForm onSubmit={(data) => handlePrediction('parkinsons', data)} loading={loading} />
-          </PredictionLayout>
-        } />
+              <Route path="/predict/kidney" element={
+                <PredictionLayout title="🫘 Kidney Disease Prediction" error={error} result={result}>
+                  <KidneyForm onSubmit={(data) => handlePrediction('kidney', data)} loading={loading} />
+                </PredictionLayout>
+              } />
 
-        <Route path="/history" element={<HistoryPage onClose={() => navigate('/')} />} />
-        <Route path="/profile" element={<UserProfile onClose={() => navigate('/')} />} />
-        <Route path="/tips" element={<HealthTips onClose={() => navigate('/')} />} />
-        <Route path="/dashboard" element={<Dashboard onClose={() => navigate('/')} />} />
-        <Route path="/checker" element={
-          <SymptomChecker
-            onClose={() => navigate('/')}
-            onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
-          />
-        } />
-      </Routes>
+              <Route path="/predict/depression" element={
+                <PredictionLayout title="🧠 Depression Screening" error={error} result={result}>
+                  <DepressionForm onSubmit={(data) => handlePrediction('depression', data)} loading={loading} />
+                </PredictionLayout>
+              } />
+
+              {/* Feature Pages */}
+              <Route path="/history" element={<HistoryPage onClose={() => navigate('/')} />} />
+              <Route path="/profile" element={<UserProfile onClose={() => navigate('/')} />} />
+              <Route path="/tips" element={<HealthTips onClose={() => navigate('/')} />} />
+              <Route path="/dashboard" element={<Dashboard onClose={() => navigate('/')} />} />
+              <Route path="/checker" element={
+                <SymptomChecker
+                  onClose={() => navigate('/')}
+                  onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
+                />
+              } />
+              <Route path="/chat" element={
+                <SymptomCheckerChat
+                  onClose={() => navigate('/')}
+                  onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
+                />
+              } />
+
+              {/* 404 catch-all */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </main>
+      </ErrorBoundary>
     </div>
+  )
+}
+
+
+/**
+ * App — Root component that wraps everything in providers.
+ */
+function App() {
+  return (
+    <PredictionProvider>
+      <AppRoutes />
+    </PredictionProvider>
   )
 }
 

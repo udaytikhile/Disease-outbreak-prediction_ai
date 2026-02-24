@@ -18,7 +18,7 @@ client:
 # ─── Install all dependencies ─────────────────────
 install:
 	@echo "📦 Installing dependencies..."
-	cd server && pip install -r requirements.txt
+	pip install -r requirements.txt
 	cd client && npm install
 
 # ─── Clean build artifacts ────────────────────────

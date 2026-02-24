@@ -5,11 +5,33 @@ flask-limiter>=3.0.0
 marshmallow>=3.0.0
 gunicorn>=20.1.0
 
+# Database & ORM
+Flask-SQLAlchemy>=3.1.0
+Flask-Migrate>=4.0.0
+
+# API Documentation
+flasgger>=0.9.7
+
+# PDF Report Generation
+reportlab>=4.0.0
+matplotlib>=3.7.0
+
+# LLM Integration
+google-generativeai>=0.8.0
+
+# Security
+bcrypt>=4.0.0
+
 # Data Science & Machine Learning Dependencies
 numpy>=1.24.3
 pandas>=2.0.0
-scikit-learn==1.2.2
+scikit-learn>=1.2.2,<1.6
 xgboost>=2.0.0
 lightgbm>=4.0.0
 optuna>=3.0.0
 imbalanced-learn>=0.11.0
+shap>=0.44.0
+
+# Testing (dev only)
+# pytest>=7.0.0
+# pytest-cov>=4.0.0

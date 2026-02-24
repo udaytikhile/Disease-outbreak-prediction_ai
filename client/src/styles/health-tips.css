@@ -1,0 +1,491 @@
+/* ========================================
+   HEALTH TIPS / INFO CENTER
+   ======================================== */
+
+.tips-container {
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeInUp 0.6s ease;
+}
+
+.tips-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tips-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.tips-subtitle {
+  color: var(--text-light);
+  font-size: 1.05rem;
+}
+
+/* Disease Pills */
+.disease-pills {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.disease-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--bg-white);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  transition: var(--transition);
+}
+
+.disease-pill:hover {
+  border-color: var(--pill-color, var(--primary-color));
+  transform: translateY(-2px);
+}
+
+.disease-pill.active {
+  background: var(--pill-color, var(--primary-color));
+  border-color: var(--pill-color, var(--primary-color));
+  color: white;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.pill-icon {
+  font-size: 1.1rem;
+}
+
+/* Tabs */
+.tips-tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  padding: 0.35rem;
+  border: 1px solid var(--border-color);
+}
+
+.tips-tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-light);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.tips-tab:hover {
+  background: rgba(99, 102, 241, 0.06);
+  color: var(--primary-color);
+}
+
+.tips-tab.active {
+  background: var(--bg-white);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tip Panel Content */
+.tips-content {
+  min-height: 400px;
+}
+
+.tips-panel {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.tips-panel h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 1.5rem;
+}
+
+/* Overview Hero */
+.overview-hero {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(124, 58, 237, 0.06));
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+}
+
+.overview-icon {
+  font-size: 5rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.overview-hero h3 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.overview-hero p {
+  color: var(--text-light);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Quick Stats Grid */
+.quick-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.quick-stat {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.quick-stat:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-color);
+}
+
+.quick-stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.quick-stat-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+}
+
+/* Risk Factors Grid */
+.risk-factors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.risk-factor-card {
+  padding: 1.25rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.risk-factor-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-sm);
+}
+
+.risk-factor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.risk-factor-icon {
+  font-size: 1.5rem;
+}
+
+.risk-severity-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+.risk-factor-name {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+}
+
+.severity-legend {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  padding-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+/* Symptoms List */
+.symptoms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.symptom-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.symptom-item:hover {
+  transform: translateX(6px);
+  border-color: var(--primary-color);
+}
+
+.symptom-number {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-gradient);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.symptom-text {
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.symptoms-note {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(124, 58, 237, 0.06));
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  color: var(--text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Prevention List */
+.prevention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prevention-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  font-weight: 500;
+  color: var(--text-dark);
+  transition: var(--transition);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.prevention-item:hover {
+  transform: translateX(6px);
+  border-color: #22c55e;
+}
+
+.prevention-check {
+  width: 28px;
+  height: 28px;
+  background: var(--success-gradient);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* Diet Columns */
+.diet-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.diet-column {
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+}
+
+.diet-column.good {
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.diet-column.avoid {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.diet-column h4 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-dark);
+}
+
+.diet-column ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.diet-column ul li {
+  padding: 0.6rem 1rem;
+  background: var(--bg-white);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.diet-column ul li:hover {
+  transform: translateX(4px);
+}
+
+/* Emergency */
+.emergency-intro {
+  color: var(--text-light);
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.emergency-signs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.emergency-sign-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.1));
+  border: 2px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  color: var(--text-dark);
+  transition: var(--transition);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.emergency-sign-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
+}
+
+.emergency-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.emergency-cta {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-radius: var(--radius-md);
+  border: 2px solid #fecaca;
+  text-align: center;
+  color: #991b1b;
+}
+
+[data-theme="dark"] .tips-panel,
+[data-theme="dark"] .disease-pill {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .disease-pill.active {
+  background: var(--pill-color, var(--primary-color));
+  border-color: var(--pill-color, var(--primary-color));
+}
+
+[data-theme="dark"] .tips-tabs {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .tips-tab.active {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .risk-factor-card,
+[data-theme="dark"] .symptom-item,
+[data-theme="dark"] .prevention-item,
+[data-theme="dark"] .quick-stat {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .emergency-cta {
+  background: linear-gradient(135deg, #450a0a, #7f1d1d);
+  border-color: #991b1b;
+  color: #fca5a5;
+}
+
