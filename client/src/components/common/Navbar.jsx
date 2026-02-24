@@ -22,10 +22,7 @@ const Navbar = ({ onNavigate }) => {
         localStorage.setItem('theme', isDark ? 'dark' : 'light')
     }, [isDark])
 
-    // Close mobile menu on route change
-    useEffect(() => {
-        setIsOpen(false)
-    }, [location.pathname])
+    // Mobile menu is closed by clicking links directly or outside click
 
     const navLinks = [
         { path: '/', label: 'Home', icon: '🏠' },

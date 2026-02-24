@@ -4,7 +4,7 @@
  * @module api/reportApi
  */
 import { fetchWithTimeout } from './client'
-import config from '../config'
+
 
 /**
  * Generate a PDF report from prediction data.

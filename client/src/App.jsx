@@ -12,7 +12,8 @@
  */
 import { useEffect, useMemo, lazy, Suspense } from 'react'
 import { Routes, Route, useNavigate } from 'react-router-dom'
-import { PredictionProvider, usePrediction } from './context/PredictionContext'
+import { PredictionProvider } from './context/PredictionContext'
+import { usePrediction } from './hooks/usePrediction'
 
 // ── Common Components (eagerly loaded — always visible) ─────────────────
 import Navbar from './components/common/Navbar'

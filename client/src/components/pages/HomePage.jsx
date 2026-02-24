@@ -8,7 +8,7 @@ import featureScreeningImg from '../../assets/feature-screening.png'
 import featurePrivacyImg from '../../assets/feature-privacy.png'
 import featureReportsImg from '../../assets/feature-reports.png'
 
-const HomePage = ({ onSelectDisease, onViewHistory, onViewProfile, onViewTips, onViewDashboard, onViewChecker, userName }) => {
+const HomePage = ({ onSelectDisease, onViewChecker }) => {
     const diseases = [
         {
             id: 'heart',

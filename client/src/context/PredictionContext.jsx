@@ -14,14 +14,15 @@
  *
  * @module context/PredictionContext
  */
-import { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import { createContext, useState, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { predictDisease } from '../api/predictionApi'
 import { usePredictionHistory } from '../hooks/usePredictionHistory'
-import { showToast } from '../components/common/Toast'
+import { showToast } from '../utils/events'
 
 const PredictionContext = createContext(null)
+export { PredictionContext }
 
 /**
  * Provider component that manages all prediction-related state.
@@ -112,16 +113,5 @@ export function PredictionProvider({ children }) {
     )
 }
 
-/**
- * Hook to access prediction state and actions.
- *
- * @returns {{ loading, loadingDisease, result, error, handlePrediction, handleReset }}
- * @throws {Error} If used outside PredictionProvider
- */
-export function usePrediction() {
-    const context = useContext(PredictionContext)
-    if (!context) {
-        throw new Error('usePrediction must be used within a PredictionProvider')
-    }
-    return context
-}
+
+

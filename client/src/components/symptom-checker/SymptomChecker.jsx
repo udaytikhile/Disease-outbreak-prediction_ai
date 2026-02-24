@@ -198,7 +198,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
           isError: true, timestamp: new Date(),
         }])
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         type: 'ai',
         content: `Connection error. Make sure the backend server is running at ${config.API_URL}`,
@@ -244,7 +244,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
           isAnalysis: true, analysis: data.analysis, timestamp: new Date(),
         }])
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         type: 'ai', content: 'Could not refine analysis. Please try again.',
         isError: true, timestamp: new Date(),

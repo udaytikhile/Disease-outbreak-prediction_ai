@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-
-// ── Pub/sub for toast events (replaces global mutable state) ────────────
-const toastEmitter = new EventTarget()
-
-export const showToast = (message, type = 'info', duration = 4000) => {
-    toastEmitter.dispatchEvent(new CustomEvent('toast', { detail: { message, type, duration } }))
-}
+import { toastEmitter } from '../../utils/events'
 
 let toastIdCounter = 0
 
@@ -31,11 +25,12 @@ const ToastContainer = () => {
     useEffect(() => {
         const handler = (e) => addToast(e.detail)
         toastEmitter.addEventListener('toast', handler)
+        const timeouts = timeoutRefs.current
         return () => {
             toastEmitter.removeEventListener('toast', handler)
             // Cleanup all pending timeouts on unmount
-            timeoutRefs.current.forEach(timeout => clearTimeout(timeout))
-            timeoutRefs.current.clear()
+            timeouts.forEach(timeout => clearTimeout(timeout))
+            timeouts.clear()
         }
     }, [addToast])
 
