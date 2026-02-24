@@ -228,13 +228,17 @@ class ModelService:
     # ── Feature engineering helpers ──────────────────────────────────────
     @staticmethod
     def _safe_float(val):
-        if val in (None, ''): return np.nan
-        try: return float(val)
-        except (ValueError, TypeError): return np.nan
+        if val in (None, ''):
+            return np.nan
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return np.nan
 
     @staticmethod
     def _safe_str(val):
-        if val in (None, ''): return np.nan
+        if val in (None, ''):
+            return np.nan
         return str(val)
 
     @staticmethod

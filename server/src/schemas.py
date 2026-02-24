@@ -2,7 +2,7 @@
 Marshmallow schemas for request validation.
 Each schema matches the features expected by the corresponding ML pipeline.
 """
-from marshmallow import Schema, fields, validate, pre_load
+from marshmallow import Schema, fields, validate
 
 
 class DiabetesPredictionSchema(Schema):
