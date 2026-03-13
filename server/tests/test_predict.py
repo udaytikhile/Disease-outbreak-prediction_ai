@@ -51,9 +51,9 @@ def test_diabetes_missing_fields(client):
     assert response.status_code == 400
 
 
-def test_kidney_missing_fields(client):
-    """Kidney prediction with missing fields should return 400."""
-    response = client.post('/api/predict/kidney', json={})
+def test_kidney_invalid_fields(client):
+    """Kidney prediction with invalid data types should return 400."""
+    response = client.post('/api/predict/kidney', json={"age": "not-a-number"})
     assert response.status_code == 400
 
 
