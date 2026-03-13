@@ -12,5 +12,5 @@ export FLASK_PORT=5001
 # -b 0.0.0.0:5001: Bind to all interfaces on port 5001
 # --access-logfile -: Log access to stdout
 # --error-logfile -: Log errors to stdout
-cd server
-exec gunicorn -w 4 -b 0.0.0.0:5001 "app:create_app('production')"
+cd "$(dirname "$0")/../server"
+exec gunicorn -w 4 -b 0.0.0.0:5001 app:app

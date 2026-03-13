@@ -1,31 +1,18 @@
 import { useState } from 'react'
 
+const EMPTY_PROFILE = {
+    name: '', age: '', gender: 'male', bloodGroup: '',
+    emergencyContact: '', allergies: '', medications: '', conditions: ''
+}
+
 const UserProfile = ({ onClose }) => {
     const [profile, setProfile] = useState(() => {
         try {
             const saved = localStorage.getItem('user_profile')
-            return saved ? JSON.parse(saved) : {
-                name: '',
-                age: '',
-                gender: 'male',
-                bloodGroup: '',
-                emergencyContact: '',
-                allergies: '',
-                medications: '',
-                conditions: ''
-            }
+            return saved ? JSON.parse(saved) : { ...EMPTY_PROFILE }
         } catch (e) {
             console.error('Failed to parse user profile:', e)
-            return {
-                name: '',
-                age: '',
-                gender: 'male',
-                bloodGroup: '',
-                emergencyContact: '',
-                allergies: '',
-                medications: '',
-                conditions: ''
-            }
+            return { ...EMPTY_PROFILE }
         }
     })
     const [saved, setSaved] = useState(false)
@@ -46,10 +33,7 @@ const UserProfile = ({ onClose }) => {
 
     const handleClear = () => {
         if (window.confirm('Clear your profile? This cannot be undone.')) {
-            const empty = {
-                name: '', age: '', gender: 'male', bloodGroup: '',
-                emergencyContact: '', allergies: '', medications: '', conditions: ''
-            }
+            const empty = { ...EMPTY_PROFILE }
             setProfile(empty)
             localStorage.removeItem('user_profile')
         }

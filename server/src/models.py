@@ -29,6 +29,7 @@ class PredictionLog(db.Model):
         return {
             'id': self.id,
             'disease_type': self.disease_type,
+            'input_data': self.input_data,
             'prediction': self.prediction,
             'risk_level': self.risk_level,
             'confidence': self.confidence,

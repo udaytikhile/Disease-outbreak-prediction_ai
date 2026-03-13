@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import config from '../../config'
+import { generateReport } from '../../api/reportApi'
 
 /**
  * PDF Report download button — calls the reports API with prediction data.
@@ -15,26 +15,16 @@ const ReportButton = ({ result }) => {
         setError(null)
 
         try {
-            const response = await fetch(`${config.API_URL}/reports/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    disease: result.disease,
-                    risk_level: result.risk_level,
-                    confidence: result.confidence,
-                    prediction: result.prediction,
-                    advice: result.advice,
-                    shap_contributions: result.shap_contributions || [],
-                }),
+            const blob = await generateReport({
+                disease: result.disease,
+                risk_level: result.risk_level,
+                confidence: result.confidence,
+                prediction: result.prediction,
+                advice: result.advice,
+                shap_contributions: result.shap_contributions || [],
             })
 
-            if (!response.ok) {
-                const data = await response.json()
-                throw new Error(data.error || 'Failed to generate report')
-            }
-
             // Download the PDF
-            const blob = await response.blob()
             const url = window.URL.createObjectURL(blob)
             const link = document.createElement('a')
             link.href = url

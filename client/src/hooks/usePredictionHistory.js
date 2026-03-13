@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 const STORAGE_KEY = 'prediction_history'
 const MAX_HISTORY = 100 // Store max 100 predictions
@@ -17,9 +17,16 @@ export const usePredictionHistory = () => {
     }
   })
 
+  // Ref to skip self-triggered sync events (Bug #6 fix)
+  const isSelfUpdate = useRef(false)
+
   // Listen for changes from other component instances using this hook
   useEffect(() => {
     const handleSync = () => {
+      if (isSelfUpdate.current) {
+        isSelfUpdate.current = false
+        return
+      }
       try {
         const saved = localStorage.getItem(STORAGE_KEY)
         setHistory(saved ? JSON.parse(saved) : [])
@@ -44,6 +51,7 @@ export const usePredictionHistory = () => {
 
   // Helper to persist and broadcast changes
   const persistAndBroadcast = useCallback((updated) => {
+    isSelfUpdate.current = true
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
     // Dispatch custom event so other hook instances sync
     window.dispatchEvent(new Event(SYNC_EVENT))
@@ -52,7 +60,7 @@ export const usePredictionHistory = () => {
   // Save prediction to history
   const addPrediction = useCallback((prediction) => {
     const newPrediction = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       ...prediction
     }
@@ -132,7 +140,9 @@ export const usePredictionHistory = () => {
 
     const csv = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell =>
+        `"${String(cell).replace(/"/g, '""')}"`
+      ).join(','))
     ].join('\n')
 
     downloadFile(csv, 'predictions.csv', 'text/csv')

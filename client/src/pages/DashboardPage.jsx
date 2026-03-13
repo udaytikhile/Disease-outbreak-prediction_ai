@@ -1,10 +1,13 @@
-import { usePredictionHistory } from '../../hooks/usePredictionHistory'
-import { useState } from 'react'
+import { usePredictionHistory } from '../hooks/usePredictionHistory'
+import { useState, useMemo } from 'react'
 
 const Dashboard = ({ onClose }) => {
-    const { history, getStatistics } = usePredictionHistory()
-    const stats = getStatistics()
+    const { history, getStatistics, exportAsCSV, exportAsJSON } = usePredictionHistory()
+    const stats = useMemo(() => getStatistics(), [getStatistics])
     const [timeFilter, setTimeFilter] = useState('all')
+    const [diseaseFilter, setDiseaseFilter] = useState('all')
+
+    const diseaseOptions = Array.from(new Set(history.map(p => p.disease))).filter(Boolean)
 
     const getFilteredHistory = () => {
         if (timeFilter === 'all') return history
@@ -21,7 +24,10 @@ const Dashboard = ({ onClose }) => {
         })
     }
 
-    const filtered = getFilteredHistory()
+    const timeFiltered = getFilteredHistory()
+    const filtered = diseaseFilter === 'all'
+        ? timeFiltered
+        : timeFiltered.filter(p => p.disease === diseaseFilter)
 
     // Calculate time-series data for the chart
     const getChartData = () => {
@@ -50,15 +56,18 @@ const Dashboard = ({ onClose }) => {
     // Calculate disease distribution for donut-style display
     const diseaseColors = {
         'Heart Disease': '#ef4444',
-        'Diabetes': '#6366f1',
-        "Parkinson's Disease": '#a855f7'
+        'Diabetes': '#3b82f6',
+        'Kidney Disease': '#10b981',
+        'Depression': '#8b5cf6'
     }
 
     const totalFiltered = filtered.length
     const highRiskFiltered = filtered.filter(p => p.risk_level === 'High').length
     const lowRiskFiltered = filtered.filter(p => p.risk_level === 'Low').length
-    const avgConfFiltered = totalFiltered > 0
-        ? (filtered.reduce((sum, p) => sum + (p.confidence || 0), 0) / totalFiltered)
+
+    const validConfPredictions = filtered.filter(p => typeof p.confidence === 'number')
+    const avgConfFiltered = validConfPredictions.length > 0
+        ? (validConfPredictions.reduce((sum, p) => sum + p.confidence, 0) / validConfPredictions.length)
         : 0
 
     // Recent trend
@@ -89,14 +98,44 @@ const Dashboard = ({ onClose }) => {
                 <div className="dashboard-actions">
                     <select
                         className="time-filter"
+                        value={diseaseFilter}
+                        onChange={(e) => setDiseaseFilter(e.target.value)}
+                        aria-label="Filter by disease"
+                    >
+                        <option value="all">All Diseases</option>
+                        {diseaseOptions.map((disease) => (
+                            <option key={disease} value={disease}>{disease}</option>
+                        ))}
+                    </select>
+                    <select
+                        className="time-filter"
                         value={timeFilter}
                         onChange={(e) => setTimeFilter(e.target.value)}
+                        aria-label="Filter by time period"
                     >
                         <option value="all">All Time</option>
                         <option value="week">Last 7 Days</option>
                         <option value="month">Last 30 Days</option>
                         <option value="3months">Last 3 Months</option>
                     </select>
+                    <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={exportAsCSV}
+                        style={{ width: 'auto' }}
+                        aria-label="Export predictions as CSV file"
+                    >
+                        ⬇️ Export CSV
+                    </button>
+                    <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={exportAsJSON}
+                        style={{ width: 'auto' }}
+                        aria-label="Export predictions as JSON file"
+                    >
+                        ⬇️ Export JSON
+                    </button>
                     <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
                         ← Back to Home
                     </button>

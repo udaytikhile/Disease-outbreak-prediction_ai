@@ -24,13 +24,30 @@ const DepressionForm = ({ onSubmit, loading }) => {
         return Math.round((filled / fields.length) * 100)
     }, [formData])
 
+    const validateField = (name, value) => {
+        let error = ''
+        if (name === 'age' && (!value || Number(value) < 10 || Number(value) > 80)) error = '10–80 years'
+        if (name === 'cgpa' && (!value || Number(value) < 0 || Number(value) > 10)) error = '0–10'
+        if (name === 'work_study_hours' && (value === '' || Number(value) < 0 || Number(value) > 24)) error = '0–24 hours'
+        return error
+    }
+
     const validateForm = () => {
         const e = {}
-        if (!formData.age || Number(formData.age) < 10 || Number(formData.age) > 80) e.age = '10–80 years'
-        if (!formData.cgpa || Number(formData.cgpa) < 0 || Number(formData.cgpa) > 10) e.cgpa = '0–10'
-        if (formData.work_study_hours === '' || Number(formData.work_study_hours) < 0 || Number(formData.work_study_hours) > 24) e.work_study_hours = '0–24 hours'
+        Object.keys(formData).forEach(key => {
+            const err = validateField(key, formData[key])
+            if (err) e[key] = err
+        })
         setErrors(e)
         return Object.keys(e).length === 0
+    }
+
+    const handleBlur = (ev) => {
+        const { name, value } = ev.target
+        if (name) {
+            const error = validateField(name, value)
+            setErrors(prev => ({ ...prev, [name]: error }))
+        }
     }
 
     const set = (ev) => {
@@ -44,12 +61,12 @@ const DepressionForm = ({ onSubmit, loading }) => {
     }
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onBlur={handleBlur}>
             <ProgressBar percent={progress} />
 
             {/* ── Demographics ── */}
             <Section icon="👤" title="Demographics" subtitle="Basic personal information">
-                <InputCard icon="⚧" label="Gender" required>
+                <InputCard icon="⚧" label="Gender" required error={errors.gender}>
                     <select name="gender" value={formData.gender} onChange={set}>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -58,14 +75,14 @@ const DepressionForm = ({ onSubmit, loading }) => {
                 <InputCard icon="🎂" label="Age" required error={errors.age}>
                     <input type="number" name="age" value={formData.age} onChange={set} placeholder="e.g., 21" min="10" max="80" />
                 </InputCard>
-                <InputCard icon="💼" label="Profession">
+                <InputCard icon="💼" label="Profession" error={errors.profession}>
                     <select name="profession" value={formData.profession} onChange={set}>
                         <option value="Student">Student</option>
                         <option value="Working Professional">Working Professional</option>
                         <option value="Other">Other</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🎓" label="Degree">
+                <InputCard icon="🎓" label="Degree" error={errors.degree}>
                     <select name="degree" value={formData.degree} onChange={set}>
                         <option value="BSc">BSc</option><option value="BA">BA</option>
                         <option value="BCA">BCA</option><option value="B.Com">B.Com</option>
@@ -86,28 +103,28 @@ const DepressionForm = ({ onSubmit, loading }) => {
                 <InputCard icon="⏰" label="Work/Study Hours per Day" required error={errors.work_study_hours}>
                     <input type="number" name="work_study_hours" value={formData.work_study_hours} onChange={set} placeholder="e.g., 6" min="0" max="24" />
                 </InputCard>
-                <InputCard icon="📝" label="Academic Pressure (0-5)">
+                <InputCard icon="📝" label="Academic Pressure (0-5)" error={errors.academic_pressure}>
                     <select name="academic_pressure" value={formData.academic_pressure} onChange={set}>
                         <option value="0">0 – None</option><option value="1">1 – Very Low</option>
                         <option value="2">2 – Low</option><option value="3">3 – Moderate</option>
                         <option value="4">4 – High</option><option value="5">5 – Very High</option>
                     </select>
                 </InputCard>
-                <InputCard icon="💼" label="Work Pressure (0-5)">
+                <InputCard icon="💼" label="Work Pressure (0-5)" error={errors.work_pressure}>
                     <select name="work_pressure" value={formData.work_pressure} onChange={set}>
                         <option value="0">0 – None</option><option value="1">1 – Very Low</option>
                         <option value="2">2 – Low</option><option value="3">3 – Moderate</option>
                         <option value="4">4 – High</option><option value="5">5 – Very High</option>
                     </select>
                 </InputCard>
-                <InputCard icon="😊" label="Study Satisfaction (0-5)">
+                <InputCard icon="😊" label="Study Satisfaction (0-5)" error={errors.study_satisfaction}>
                     <select name="study_satisfaction" value={formData.study_satisfaction} onChange={set}>
                         <option value="0">0 – Very Dissatisfied</option><option value="1">1 – Dissatisfied</option>
                         <option value="2">2 – Slightly</option><option value="3">3 – Neutral</option>
                         <option value="4">4 – Satisfied</option><option value="5">5 – Very Satisfied</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🏢" label="Job Satisfaction (0-5)">
+                <InputCard icon="🏢" label="Job Satisfaction (0-5)" error={errors.job_satisfaction}>
                     <select name="job_satisfaction" value={formData.job_satisfaction} onChange={set}>
                         <option value="0">0 – Very Dissatisfied</option><option value="1">1 – Dissatisfied</option>
                         <option value="2">2 – Slightly</option><option value="3">3 – Neutral</option>
@@ -118,7 +135,7 @@ const DepressionForm = ({ onSubmit, loading }) => {
 
             {/* ── Lifestyle ── */}
             <Section icon="🌙" title="Lifestyle & Habits" subtitle="Sleep, diet, and financial well-being">
-                <InputCard icon="😴" label="Sleep Duration" required>
+                <InputCard icon="😴" label="Sleep Duration" required error={errors.sleep_duration}>
                     <select name="sleep_duration" value={formData.sleep_duration} onChange={set}>
                         <option value="Less than 5 hours">Less than 5 hours</option>
                         <option value="5-6 hours">5–6 hours</option>
@@ -127,7 +144,7 @@ const DepressionForm = ({ onSubmit, loading }) => {
                         <option value="Others">Others / Irregular</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🍽️" label="Dietary Habits" required>
+                <InputCard icon="🍽️" label="Dietary Habits" required error={errors.dietary_habits}>
                     <select name="dietary_habits" value={formData.dietary_habits} onChange={set}>
                         <option value="Healthy">Healthy</option>
                         <option value="Moderate">Moderate</option>
@@ -135,7 +152,7 @@ const DepressionForm = ({ onSubmit, loading }) => {
                         <option value="Others">Others</option>
                     </select>
                 </InputCard>
-                <InputCard icon="💸" label="Financial Stress (0-5)">
+                <InputCard icon="💸" label="Financial Stress (0-5)" error={errors.financial_stress}>
                     <select name="financial_stress" value={formData.financial_stress} onChange={set}>
                         <option value="0">0 – None</option><option value="1">1 – Very Low</option>
                         <option value="2">2 – Low</option><option value="3">3 – Moderate</option>
@@ -146,13 +163,13 @@ const DepressionForm = ({ onSubmit, loading }) => {
 
             {/* ── Mental Health History ── */}
             <Section icon="🧠" title="Mental Health History" subtitle="Family history and self-assessment">
-                <InputCard icon="💭" label="Ever Had Suicidal Thoughts?" required>
+                <InputCard icon="💭" label="Ever Had Suicidal Thoughts?" required error={errors.suicidal_thoughts}>
                     <select name="suicidal_thoughts" value={formData.suicidal_thoughts} onChange={set}>
                         <option value="No">No</option>
                         <option value="Yes">Yes</option>
                     </select>
                 </InputCard>
-                <InputCard icon="👨‍👩‍👧" label="Family History of Mental Illness" required>
+                <InputCard icon="👨‍👩‍👧" label="Family History of Mental Illness" required error={errors.family_history}>
                     <select name="family_history" value={formData.family_history} onChange={set}>
                         <option value="No">No</option>
                         <option value="Yes">Yes</option>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import config from '../../config'
+import BodyMap, { REGION_SYMPTOMS } from './BodyMap'
 
 const QUICK_SYMPTOMS = [
   'Chest Pain', 'Shortness of Breath', 'Fatigue', 'Frequent Urination',
@@ -28,6 +29,14 @@ const TRIAGE_CONFIG = {
   informational: { label: '🟢 Informational', color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
 }
 
+const getConfidenceLabel = (score) => {
+  if (typeof score !== 'number' || Number.isNaN(score)) return 'N/A'
+  if (score >= 0.7) return 'High'
+  if (score >= 0.4) return 'Moderate'
+  if (score > 0) return 'Low'
+  return 'N/A'
+}
+
 const SymptomChecker = ({ onClose, onStartAssessment }) => {
   // ── State ──────────────────────────────
   const [step, setStep] = useState('demographics') // demographics → symptoms → results
@@ -43,7 +52,11 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
   const [showDisclaimer, setShowDisclaimer] = useState(true)
   const [autocompleteResults, setAutocompleteResults] = useState([])
   const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const [activeSeveritySymptom, setActiveSeveritySymptom] = useState(null)
+  const [inputMode, setInputMode] = useState('text')
+  const [mapRegion, setMapRegion] = useState(null)
+  const [mapSymptoms, setMapSymptoms] = useState([])
   const [followUpAnswers, setFollowUpAnswers] = useState({})
   const [isFollowingUp, setIsFollowingUp] = useState(false)
   const messagesEndRef = useRef(null)
@@ -85,9 +98,21 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     handleDemographicsSubmit()
   }
 
+  // ── Body Map ───────────────────────────
+  const handleMapSelect = (region, regionSymptoms) => {
+    if (mapRegion === region) {
+      setMapRegion(null)
+      setMapSymptoms([])
+    } else {
+      setMapRegion(region)
+      setMapSymptoms(regionSymptoms)
+    }
+  }
+
   // ── Autocomplete ───────────────────────
   const handleInputChange = useCallback((value) => {
     setInputValue(value)
+    setActiveIndex(-1)
     if (value.trim().length >= 2) {
       const lower = value.toLowerCase()
       const filtered = QUICK_SYMPTOMS.filter(s =>
@@ -100,6 +125,27 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
       setShowAutocomplete(false)
     }
   }, [symptoms])
+
+  const handleKeyDown = (e) => {
+    if (!showAutocomplete || autocompleteResults.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex(prev => (prev < autocompleteResults.length - 1 ? prev + 1 : prev))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : prev))
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0 && activeIndex < autocompleteResults.length) {
+        e.preventDefault()
+        addSymptom(autocompleteResults[activeIndex])
+        setShowAutocomplete(false)
+        setActiveIndex(-1)
+      }
+    } else if (e.key === 'Escape') {
+      setShowAutocomplete(false)
+      setActiveIndex(-1)
+    }
+  }
 
   // ── Add Symptom ────────────────────────
   const addSymptom = (symptom) => {
@@ -502,6 +548,9 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                                   <div className="confidence-header">
                                     <span className="confidence-label">Match Confidence</span>
                                     <span className="confidence-pct">{Math.round(disease.confidence * 100)}%</span>
+                                    <span className="confidence-band">
+                                      {getConfidenceLabel(disease.confidence)} confidence
+                                    </span>
                                   </div>
                                   <div className="confidence-bar-track">
                                     <div className="confidence-bar-fill" style={{
@@ -645,8 +694,36 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Mode Toggle */}
+          {!analysisResult && step === 'symptoms' && (
+            <div className="symptom-input-mode-toggle">
+              <button className={`mode-btn ${inputMode === 'text' ? 'active' : ''}`} onClick={() => setInputMode('text')}>💬 Text Search</button>
+              <button className={`mode-btn ${inputMode === 'map' ? 'active' : ''}`} onClick={() => setInputMode('map')}>🧍 Body Map</button>
+            </div>
+          )}
+
+          {/* Body Map Mode */}
+          {inputMode === 'map' && !analysisResult && step === 'symptoms' && (
+            <div className="body-map-section">
+              <BodyMap activeRegion={mapRegion} onSelectSymptoms={handleMapSelect} />
+              {mapRegion && (
+                <div className="symptom-suggestions body-map-suggestions">
+                  <p className="suggestions-label">💡 Symptoms for {mapRegion}:</p>
+                  <div className="suggestions-grid">
+                    {mapSymptoms.filter(s => !symptoms.find(existing => existing.toLowerCase() === s.toLowerCase())).map((s, i) => (
+                      <button key={i} className="suggestion-chip" onClick={() => addSymptom(s)}>{s}</button>
+                    ))}
+                  </div>
+                  {mapSymptoms.filter(s => !symptoms.find(existing => existing.toLowerCase() === s.toLowerCase())).length === 0 && (
+                    <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-light)' }}>All available symptoms for {mapRegion} added.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Suggestions */}
-          {showSuggestions && !analysisResult && step === 'symptoms' && (
+          {showSuggestions && !analysisResult && step === 'symptoms' && inputMode === 'text' && (
             <div className="symptom-suggestions">
               <p className="suggestions-label">💡 Common symptoms — click to add:</p>
               <div className="suggestions-grid">
@@ -667,7 +744,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
           )}
 
           {/* Input Bar */}
-          {!analysisResult && step === 'symptoms' && (
+          {!analysisResult && step === 'symptoms' && inputMode === 'text' && (
             <div className="symptom-input-section">
               <form onSubmit={handleInputSubmit} className="symptom-input-form" ref={autocompleteRef}>
                 <div className="autocomplete-wrapper">
@@ -680,14 +757,15 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                       : "Add another symptom…"}
                     value={inputValue}
                     onChange={(e) => handleInputChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     onFocus={() => inputValue.trim().length >= 2 && setShowAutocomplete(autocompleteResults.length > 0)}
                     disabled={isAnalyzing}
                   />
                   {showAutocomplete && (
                     <div className="autocomplete-dropdown">
                       {autocompleteResults.map((r, i) => (
-                        <button key={i} type="button" className="autocomplete-item"
-                          onClick={() => { addSymptom(r); setShowAutocomplete(false) }}>
+                        <button key={i} type="button" className={`autocomplete-item ${i === activeIndex ? 'active' : ''}`}
+                          onClick={() => { addSymptom(r); setShowAutocomplete(false); setActiveIndex(-1) }}>
                           <span className="autocomplete-match">🔍</span> {r}
                         </button>
                       ))}

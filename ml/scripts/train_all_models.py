@@ -1,19 +1,22 @@
 """
-Train 4 Disease Prediction Models — Optimized Edition
-=======================================================
+Train 4 Disease Prediction Models — Optimized Edition v2
+==========================================================
 Datasets:
-  1. diabetes_binary.csv           -> Diabetes Prediction      (XGBoost)
-  2. heart_disease_uci.csv         -> Heart Disease Prediction  (XGBoost)
-  3. kidney_disease.csv            -> Chronic Kidney Disease    (Random Forest)
-  4. student_depression_dataset.csv -> Depression Prediction    (XGBoost)
+  1. diabetes_binary.csv           -> Diabetes Prediction      (Stacking Ensemble)
+  2. heart_disease_uci.csv         -> Heart Disease Prediction  (Stacking Ensemble)
+  3. kidney_disease.csv            -> Chronic Kidney Disease    (Random Forest + Calibration)
+  4. student_depression_dataset.csv -> Depression Prediction    (Stacking Ensemble)
 
-Improvements over baseline:
-  - XGBoost for diabetes, heart, and depression models
+Improvements over v1:
+  - Optuna for hyperparameter tuning (replaces RandomizedSearchCV)
+  - Stacking ensemble: XGBoost + LightGBM + CatBoost → Logistic Regression meta
+  - SMOTE / SMOTE-ENN for imbalanced datasets
   - IterativeImputer (MICE) for datasets with heavy nulls
-  - Feature engineering (interactions, mappings)
-  - RandomizedSearchCV for hyperparameter tuning
-  - TargetEncoder for high-cardinality categoricals
-  - Better data cleaning / feature selection
+  - Enhanced feature engineering (interactions, mappings)
+  - SHAP-based feature selection (drop features with mean |SHAP| < 0.001)
+  - CalibratedClassifierCV for better probability outputs
+  - 10-fold StratifiedKFold
+  - Threshold tuning via ROC curve
 """
 
 import warnings
@@ -23,42 +26,52 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from sklearn.model_selection import (
-    train_test_split,
-    cross_val_score,
-    RandomizedSearchCV,
-    StratifiedKFold,
-)
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.preprocessing import (
-    LabelEncoder,
-    StandardScaler,
-    OrdinalEncoder,
-    OneHotEncoder,
-)
-from sklearn.impute import SimpleImputer
-from sklearn.experimental import enable_iterative_imputer  # noqa: F401
-from sklearn.impute import IterativeImputer
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-)
-from scipy.stats import uniform, randint
+from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+from sklearn.calibration import CalibratedClassifierCV
+
 import xgboost as xgb
+import lightgbm as lgb
+
+try:
+    from catboost import CatBoostClassifier
+    _CATBOOST_AVAILABLE = True
+except ImportError:
+    _CATBOOST_AVAILABLE = False
+    print("⚠️  CatBoost not installed. Install with: pip install catboost")
+
+try:
+    from imblearn.over_sampling import SMOTE
+    from imblearn.combine import SMOTEENN
+    from imblearn.pipeline import Pipeline as ImbPipeline
+    _IMBLEARN_AVAILABLE = True
+except ImportError:
+    _IMBLEARN_AVAILABLE = False
+    print("⚠️  imbalanced-learn not installed. Install with: pip install imbalanced-learn")
+
+from utils import (
+    build_preprocessor,
+    build_stacking_ensemble,
+    optuna_tune_xgb,
+    optuna_tune_lgb,
+    find_best_threshold,
+    shap_feature_selection,
+    evaluate_and_save,
+    make_version,
+    save_evaluation_artifacts,
+    FeatureSelector,
+    BASE_DIR,
+    DATA_DIR,
+    MODEL_DIR,
+    SEP,
+)
+
 import joblib
 from datetime import datetime, timezone
 
-# ── Paths ────────────────────────────────────────────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent.parent  # ml/
-DATA_DIR = BASE_DIR / "data"
-MODEL_DIR = BASE_DIR / "models"
-MODEL_DIR.mkdir(parents=True, exist_ok=True)
-
-SEP = "=" * 72
 
 # ── Baselines (from first run) ──────────────────────────────────────────────
 BASELINES = {
@@ -68,160 +81,12 @@ BASELINES = {
     "Student Depression Prediction":      0.8425,
 }
 
-
-# ── Feature 4: Model versioning helper ───────────────────────────────────────
-def make_version(model_filename: str) -> str:
-    """Return a version string YYYYMMDD_N where N auto-increments.
-
-    Looks at the existing pkl to read its current version date.
-    If the date matches today, increments N; otherwise resets to 1.
-    Examples: '20250222_1', '20250222_2', '20250223_1'
-    """
-    date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-    fpath = MODEL_DIR / model_filename
-    if fpath.exists():
-        try:
-            existing = joblib.load(fpath)
-            if isinstance(existing, dict):
-                prev_ver = existing.get('version', '')
-                if prev_ver.startswith(date_str):
-                    n = int(prev_ver.split('_')[1]) + 1
-                    return f"{date_str}_{n}"
-        except Exception:
-            pass
-    return f"{date_str}_1"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-def build_preprocessor(numeric_cols, categorical_cols, use_iterative=False,
-                       use_onehot=False):
-    """ColumnTransformer with optional IterativeImputer & OneHotEncoder."""
-    transformers = []
-    if numeric_cols:
-        if use_iterative:
-            num_pipe = Pipeline([
-                ("imputer", IterativeImputer(max_iter=20, random_state=42)),
-                ("scaler", StandardScaler()),
-            ])
-        else:
-            num_pipe = Pipeline([
-                ("imputer", SimpleImputer(strategy="median")),
-                ("scaler", StandardScaler()),
-            ])
-        transformers.append(("num", num_pipe, numeric_cols))
-
-    if categorical_cols:
-        if use_onehot:
-            cat_pipe = Pipeline([
-                ("imputer", SimpleImputer(strategy="most_frequent")),
-                ("encoder", OneHotEncoder(
-                    handle_unknown="ignore", sparse_output=False
-                )),
-            ])
-        else:
-            cat_pipe = Pipeline([
-                ("imputer", SimpleImputer(strategy="most_frequent")),
-                ("encoder", OrdinalEncoder(
-                    handle_unknown="use_encoded_value", unknown_value=-1
-                )),
-            ])
-        transformers.append(("cat", cat_pipe, categorical_cols))
-
-    return ColumnTransformer(transformers, remainder="drop")
-
-
-def find_best_threshold(pipe, X_val, y_val, positive_label=1):
-    """Sweep thresholds 0.05–0.95 and return the one that maximises
-    F1 for the positive class (class == positive_label).
-
-    For binary classifiers sklearn always places class probabilities in the
-    order returned by pipe.classes_, so we look up the correct column.
-    Returns the best threshold as a float.
-    """
-    try:
-        proba = pipe.predict_proba(X_val)[:, 1]  # P(positive_label)
-    except AttributeError:
-        # Pipeline has no predict_proba — fall back to 0.5
-        print("  ⚠️  predict_proba not available; using threshold = 0.50")
-        return 0.5
-
-    best_t, best_f1 = 0.5, 0.0
-    for t in np.arange(0.05, 0.96, 0.01):
-        preds = (proba >= t).astype(int)
-        # For kidney disease the 'positive' (disease) label is 0 — invert
-        if positive_label == 0:
-            preds = 1 - preds
-            compare_y = (y_val == positive_label).astype(int)
-        else:
-            compare_y = y_val
-        try:
-            score = f1_score(compare_y, preds, zero_division=0)
-        except Exception:
-            continue
-        if score > best_f1:
-            best_f1, best_t = score, round(float(t), 4)
-
-    print(f"  🎯 Best threshold   : {best_t:.4f}  (F1={best_f1:.4f})")
-    return best_t
-
-
-def evaluate_and_save(name, pipe, X_train, X_test, y_train, y_test,
-                      model_filename, positive_label=1):
-    """Fit, evaluate, print results, save model+threshold, return metrics dict."""
-    # Cross-validation
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    cv_scores = cross_val_score(pipe, X_train, y_train, cv=cv,
-                                scoring="accuracy", n_jobs=-1)
-    print(f"\n  5-Fold CV Accuracy : {cv_scores.mean():.4f} "
-          f"(+/- {cv_scores.std():.4f})")
-
-    # Fit
-    pipe.fit(X_train, y_train)
-
-    # Predict (using default 0.5 for reporting)
-    y_pred = pipe.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average="weighted")
-
-    print(f"  Test Accuracy      : {acc:.4f}  ({acc*100:.2f}%)")
-    print(f"  Test F1 (weighted) : {f1:.4f}")
-
-    # Baseline comparison
-    baseline = BASELINES.get(name, None)
-    if baseline:
-        delta = acc - baseline
-        arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "═")
-        print(f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
-              f"({arrow} {abs(delta)*100:+.2f} pp)")
-
-    print(f"\n  Classification Report:")
-    print(classification_report(y_test, y_pred, zero_division=0))
-    print(f"  Confusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
-
-    # ── Bug 5 fix: find and save optimal threshold ──────────────────────
-    best_threshold = find_best_threshold(pipe, X_test, y_test,
-                                         positive_label=positive_label)
-
-    # Feature 4: versioned save — pipeline + threshold + version metadata
-    model_path = MODEL_DIR / model_filename
-    version    = make_version(model_filename)
-    trained_at = datetime.now(timezone.utc).isoformat()
-    joblib.dump({
-        'pipeline':   pipe,
-        'threshold':  best_threshold,
-        'version':    version,
-        'trained_at': trained_at,
-    }, model_path)
-    print(f"\n  ✅ Model saved → {model_path}  (v{version}, threshold={best_threshold})")
-
-    return {"name": name, "accuracy": acc, "f1": f1, "cv_mean": cv_scores.mean()}
+N_FOLDS = 10  # All models use 10-fold CV
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 1. DIABETES PREDICTION  — XGBoost + Feature Engineering
+# 1. DIABETES PREDICTION
+#    Stacking Ensemble + SMOTE + Optuna + Feature Engineering
 # ══════════════════════════════════════════════════════════════════════════════
 def train_diabetes():
     name = "Diabetes Prediction (Binary)"
@@ -238,96 +103,186 @@ def train_diabetes():
     X["GenHlth_PhysHlth"] = X["GenHlth"] * X["PhysHlth"]
     X["GenHlth_MentHlth"] = X["GenHlth"] * X["MentHlth"]
     X["BMI_HighBP"] = X["BMI"] * X["HighBP"]
+    # New interaction features
+    X["BMI_GenHlth"] = X["BMI"] * X["GenHlth"]
+    X["Age_HighBP_HighChol"] = X["Age"] * X["HighBP"] * X["HighChol"]
+    X["PhysHlth_MentHlth"] = X["PhysHlth"] * X["MentHlth"]
+    X["BMI_PhysActivity"] = X["BMI"] * (1 - X["PhysActivity"])  # BMI when inactive
+    X["Income_Education"] = X["Income"] * X["Education"]
 
     print(f"  Dataset shape : {X.shape}")
     print(f"  Target classes: {dict(zip(*np.unique(y, return_counts=True)))}")
 
+    neg_count = (y == 0).sum()
+    pos_count = (y == 1).sum()
+    print(f"  Class ratio   : {neg_count}:{pos_count} "
+          f"(imbalance ratio: {neg_count/pos_count:.2f})")
+
     numeric_cols = X.columns.tolist()
     categorical_cols = []
-
-    preprocessor = build_preprocessor(numeric_cols, categorical_cols)
-
-    # ── XGBoost with RandomizedSearchCV ──────────────────────────────────
-    base_clf = xgb.XGBClassifier(
-        random_state=42, n_jobs=-1, eval_metric="logloss",
-        tree_method="hist", scale_pos_weight=1.0,
-    )
-
-    pipe = Pipeline([
-        ("preprocessor", preprocessor),
-        ("classifier", base_clf),
-    ])
-
-    param_dist = {
-        "classifier__n_estimators": randint(200, 600),
-        "classifier__max_depth": randint(3, 8),
-        "classifier__learning_rate": uniform(0.02, 0.15),
-        "classifier__subsample": uniform(0.7, 0.3),
-        "classifier__colsample_bytree": uniform(0.6, 0.4),
-        "classifier__min_child_weight": randint(3, 15),
-        "classifier__gamma": uniform(0, 0.3),
-        "classifier__reg_alpha": uniform(0, 0.5),
-        "classifier__reg_lambda": uniform(0.5, 2.0),
-    }
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42, stratify=y
     )
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    search = RandomizedSearchCV(
-        pipe, param_dist, n_iter=40, cv=cv, scoring="accuracy",
-        random_state=42, n_jobs=-1, refit=True,
+    preprocessor = build_preprocessor(numeric_cols, categorical_cols)
+
+    # ── Step 1: Optuna tuning on individual models ───────────────────────
+    print("\n  📊 Tuning XGBoost with Optuna (50 trials)...")
+    scale_pw = neg_count / pos_count
+    xgb_best = optuna_tune_xgb(
+        preprocessor.fit_transform(X_train), y_train,
+        n_trials=50, n_folds=N_FOLDS,
+        scale_pos_weight=scale_pw, scoring="f1",
     )
-    search.fit(X_train, y_train)
-    best_pipe = search.best_estimator_
 
-    print(f"\n  Best CV score from search: {search.best_score_:.4f}")
-    print(f"  Best params: { {k.replace('classifier__',''): round(v,4) if isinstance(v,float) else v for k,v in search.best_params_.items()} }")
+    print("\n  📊 Tuning LightGBM with Optuna (40 trials)...")
+    lgb_best = optuna_tune_lgb(
+        preprocessor.fit_transform(X_train), y_train,
+        n_trials=40, n_folds=N_FOLDS,
+        scale_pos_weight=scale_pw, scoring="f1",
+    )
 
-    # Evaluate best
-    y_pred = best_pipe.predict(X_test)
+    # ── Step 2: SMOTE oversampling ───────────────────────────────────────
+    if _IMBLEARN_AVAILABLE:
+        print("\n  ⚖️ Applying SMOTE oversampling...")
+        smote = SMOTE(random_state=42, sampling_strategy="auto")
+        X_train_processed = preprocessor.fit_transform(X_train)
+        X_train_res, y_train_res = smote.fit_resample(X_train_processed, y_train)
+        print(f"  After SMOTE: {dict(zip(*np.unique(y_train_res, return_counts=True)))}")
+    else:
+        X_train_res = preprocessor.fit_transform(X_train)
+        y_train_res = y_train
+
+    # ── Step 3: SHAP feature selection ───────────────────────────────────
+    print("\n  🔧 SHAP feature selection...")
+    quick_xgb = xgb.XGBClassifier(
+        random_state=42, n_jobs=-1, eval_metric="logloss",
+        tree_method="hist", verbosity=0,
+        n_estimators=200, max_depth=5, learning_rate=0.1,
+    )
+    quick_xgb.fit(X_train_res, y_train_res)
+    try:
+        feat_names_out = list(preprocessor.get_feature_names_out())
+    except Exception:
+        feat_names_out = numeric_cols + categorical_cols
+    keep_names, drop_names = shap_feature_selection(
+        quick_xgb, X_train_res, feat_names_out, threshold=0.001
+    )
+
+    # ── Step 4: Build stacking ensemble ──────────────────────────────────
+    print("\n  🏗️ Building stacking ensemble...")
+    cat_params = {"iterations": xgb_best.get("n_estimators", 400),
+                  "depth": min(xgb_best.get("max_depth", 6), 10),
+                  "learning_rate": xgb_best.get("learning_rate", 0.05)}
+
+    stacker = build_stacking_ensemble(
+        xgb_params={k: v for k, v in xgb_best.items()
+                     if k not in ("n_estimators",)} | {
+            "n_estimators": xgb_best.get("n_estimators", 400),
+            "scale_pos_weight": scale_pw,
+        },
+        lgb_params={k: v for k, v in lgb_best.items()
+                     if k not in ("n_estimators",)} | {
+            "n_estimators": lgb_best.get("n_estimators", 400),
+            "scale_pos_weight": scale_pw,
+        },
+        cat_params=cat_params,
+        use_calibration=True,
+    )
+
+    # Map kept feature names back to indices for a FeatureSelector
+    try:
+        keep_indices = [feat_names_out.index(n) for n in keep_names]
+    except ValueError:
+        # Fallback: if something goes wrong, keep all features
+        keep_indices = list(range(len(feat_names_out)))
+
+    # Build the full pipeline (preprocessor already fit above for SMOTE,
+    # but we need it fresh in the pipeline for saving)
+    pipe = Pipeline([
+        ("preprocessor", build_preprocessor(numeric_cols, categorical_cols)),
+        ("feature_selector", FeatureSelector(indices=keep_indices)),
+        ("classifier", stacker),
+    ])
+
+    # ── Step 5: Cross-validate & evaluate ────────────────────────────────
+    cv = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=42)
+    print("\n  📈 Cross-validating stacking ensemble...")
+    cv_scores = cross_val_score(pipe, X_train, y_train, cv=cv,
+                                scoring="accuracy", n_jobs=-1)
+    print(f"  {N_FOLDS}-Fold CV Accuracy : {cv_scores.mean():.4f} "
+          f"(+/- {cv_scores.std():.4f})")
+
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred, average="weighted")
 
-    cv_scores = cross_val_score(best_pipe, X_train, y_train, cv=cv,
-                                scoring="accuracy", n_jobs=-1)
-    print(f"\n  5-Fold CV Accuracy : {cv_scores.mean():.4f} "
-          f"(+/- {cv_scores.std():.4f})")
     print(f"  Test Accuracy      : {acc:.4f}  ({acc*100:.2f}%)")
     print(f"  Test F1 (weighted) : {f1:.4f}")
 
-    baseline = BASELINES.get(name, None)
+    baseline = BASELINES.get(name)
     if baseline:
         delta = acc - baseline
         arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "═")
-        print(f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
-              f"({arrow} {abs(delta)*100:+.2f} pp)")
+        print(
+            f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
+            f"({arrow} {abs(delta)*100:+.2f} pp)"
+        )
 
     print(f"\n  Classification Report:")
     print(classification_report(y_test, y_pred, zero_division=0))
     print(f"  Confusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
 
-    # ── Bug 5 fix: find and save optimal threshold ──────────────────────
-    best_threshold = find_best_threshold(best_pipe, X_test, y_test, positive_label=1)
+    best_threshold = find_best_threshold(pipe, X_test, y_test, positive_label=1)
 
     model_path = MODEL_DIR / "diabetes_model.pkl"
-    version    = make_version("diabetes_model.pkl")
+    version = make_version("diabetes_model.pkl")
     trained_at = datetime.now(timezone.utc).isoformat()
-    joblib.dump({
-        'pipeline':   best_pipe,
-        'threshold':  best_threshold,
-        'version':    version,
-        'trained_at': trained_at,
-    }, model_path)
+    joblib.dump(
+        {
+            "pipeline": pipe,
+            "threshold": best_threshold,
+            "version": version,
+            "trained_at": trained_at,
+            # SHAP feature selection metadata
+            "feature_names_out": feat_names_out,
+            "keep_indices": keep_indices,
+        },
+        model_path,
+    )
     print(f"\n  ✅ Model saved → {model_path}  (v{version}, threshold={best_threshold})")
+
+    # Probabilities for rich evaluation artifacts
+    try:
+        proba = pipe.predict_proba(X_test)[:, 1]
+    except Exception:
+        proba = None
+
+    try:
+        save_evaluation_artifacts(
+            name=name,
+            model_filename="diabetes_model.pkl",
+            X_test=X_test,
+            y_test=y_test,
+            y_pred=y_pred,
+            proba=proba,
+            cv_scores=cv_scores,
+            best_threshold=best_threshold,
+            positive_label=1,
+            baseline=baseline,
+        )
+    except Exception as e:
+        print(f"  ⚠️ Failed to persist evaluation artifacts for diabetes: {e}")
 
     return {"name": name, "accuracy": acc, "f1": f1, "cv_mean": cv_scores.mean()}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2. HEART DISEASE PREDICTION  — XGBoost + IterativeImputer + Feature Eng
+# 2. HEART DISEASE PREDICTION
+#    Stacking Ensemble + CatBoost + Optuna + Feature Eng
 # ══════════════════════════════════════════════════════════════════════════════
 def train_heart_disease():
     name = "Heart Disease Prediction (UCI)"
@@ -335,11 +290,9 @@ def train_heart_disease():
 
     df = pd.read_csv(DATA_DIR / "heart_disease_uci.csv")
 
-    # Binary target: 0 = no disease, ≥1 = disease
     target = "num"
     df[target] = (df[target] > 0).astype(int)
 
-    # Keep 'dataset' as categorical feature (encodes hospital origin)
     if "id" in df.columns:
         df.drop(columns=["id"], inplace=True)
 
@@ -347,107 +300,168 @@ def train_heart_disease():
     X = df.drop(columns=[target])
 
     # ── Feature Engineering ──────────────────────────────────────────────
-    # Map some categoricals to numeric for interactions
     X["age_sq"] = X["age"] ** 2
+    # New interaction features
+    if "chol" in X.columns and "thalch" in X.columns:
+        X["chol_thalch_ratio"] = X["chol"] / (X["thalch"].replace(0, np.nan) + 1)
+    if "trestbps" in X.columns and "age" in X.columns:
+        X["trestbps_age"] = X["trestbps"] * X["age"]
 
     print(f"  Dataset shape : {X.shape}")
     print(f"  Nulls total   : {X.isnull().sum().sum()}")
-    print(f"  Target classes: {dict(zip(*np.unique(y, return_counts=True)))}")
+    class_counts = dict(zip(*np.unique(y, return_counts=True)))
+    print(f"  Target classes: {class_counts}")
 
     numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
     categorical_cols = X.select_dtypes(exclude=["number"]).columns.tolist()
     print(f"  Numeric features     : {len(numeric_cols)}")
     print(f"  Categorical features : {len(categorical_cols)}")
 
-    # Use IterativeImputer for numeric, OneHotEncoder for categorics
+    # Use IterativeImputer for numeric, OneHotEncoder for categoricals
     preprocessor = build_preprocessor(
         numeric_cols, categorical_cols,
         use_iterative=True,
         use_onehot=True,
     )
 
-    # ── XGBoost with RandomizedSearchCV ──────────────────────────────────
-    base_clf = xgb.XGBClassifier(
-        random_state=42, n_jobs=-1, eval_metric="logloss",
-        tree_method="hist",
-    )
-
-    pipe = Pipeline([
-        ("preprocessor", preprocessor),
-        ("classifier", base_clf),
-    ])
-
-    param_dist = {
-        "classifier__n_estimators": randint(200, 600),
-        "classifier__max_depth": randint(3, 10),
-        "classifier__learning_rate": uniform(0.01, 0.19),
-        "classifier__subsample": uniform(0.6, 0.4),
-        "classifier__colsample_bytree": uniform(0.6, 0.4),
-        "classifier__min_child_weight": randint(1, 10),
-        "classifier__gamma": uniform(0, 0.5),
-        "classifier__reg_alpha": uniform(0, 1),
-        "classifier__reg_lambda": uniform(0.5, 2),
-    }
-
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42, stratify=y
     )
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    search = RandomizedSearchCV(
-        pipe, param_dist, n_iter=60, cv=cv, scoring="accuracy",
-        random_state=42, n_jobs=-1, refit=True,
+    # Class imbalance handling (standardized with other tasks)
+    neg_count = (y_train == 0).sum()
+    pos_count = (y_train == 1).sum()
+    if pos_count > 0:
+        scale_pw = neg_count / pos_count
+        print(f"  Class ratio (train): {neg_count}:{pos_count} "
+              f"(imbalance ratio: {neg_count/pos_count:.2f})")
+    else:
+        scale_pw = 1.0
+
+    # ── Step 1: Optuna tuning ────────────────────────────────────────────
+    print("\n  📊 Tuning XGBoost with Optuna (60 trials)...")
+    X_train_transformed = preprocessor.fit_transform(X_train)
+    xgb_best = optuna_tune_xgb(
+        X_train_transformed, y_train,
+        n_trials=60, n_folds=N_FOLDS,
+        scale_pos_weight=scale_pw,
+        scoring="f1",
     )
-    search.fit(X_train, y_train)
-    best_pipe = search.best_estimator_
 
-    print(f"\n  Best CV score from search: {search.best_score_:.4f}")
-    print(f"  Best params: { {k.replace('classifier__',''): round(v,4) if isinstance(v,float) else v for k,v in search.best_params_.items()} }")
+    print("\n  📊 Tuning LightGBM with Optuna (50 trials)...")
+    lgb_best = optuna_tune_lgb(
+        X_train_transformed, y_train,
+        n_trials=50, n_folds=N_FOLDS,
+        scale_pos_weight=scale_pw,
+        scoring="f1",
+    )
 
-    # Evaluate the best pipeline
-    y_pred = best_pipe.predict(X_test)
+    # ── Step 2: Build stacking ensemble ──────────────────────────────────
+    print("\n  🏗️ Building stacking ensemble...")
+    cat_params = {"iterations": xgb_best.get("n_estimators", 400),
+                  "depth": min(xgb_best.get("max_depth", 6), 10),
+                  "learning_rate": xgb_best.get("learning_rate", 0.05)}
+
+    stacker = build_stacking_ensemble(
+        xgb_params={k: v for k, v in xgb_best.items()
+                     if k not in ("n_estimators",)} | {
+            "n_estimators": xgb_best.get("n_estimators", 400),
+            "scale_pos_weight": scale_pw,
+        },
+        lgb_params={k: v for k, v in lgb_best.items()
+                     if k not in ("n_estimators",)} | {
+            "n_estimators": lgb_best.get("n_estimators", 400),
+            "scale_pos_weight": scale_pw,
+        },
+        cat_params=cat_params,
+        use_calibration=True,
+    )
+
+    pipe = Pipeline([
+        ("preprocessor", build_preprocessor(
+            numeric_cols, categorical_cols,
+            use_iterative=True, use_onehot=True,
+        )),
+        ("classifier", stacker),
+    ])
+
+    # ── Step 3: Cross-validate & evaluate ────────────────────────────────
+    cv = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=42)
+    print("\n  📈 Cross-validating stacking ensemble...")
+    cv_scores = cross_val_score(
+        pipe, X_train, y_train, cv=cv, scoring="accuracy", n_jobs=-1
+    )
+    print(
+        f"  {N_FOLDS}-Fold CV Accuracy : {cv_scores.mean():.4f} "
+        f"(+/- {cv_scores.std():.4f})"
+    )
+
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred, average="weighted")
 
-    # CV on best estimator
-    cv_scores = cross_val_score(best_pipe, X_train, y_train, cv=cv,
-                                scoring="accuracy", n_jobs=-1)
-    print(f"\n  5-Fold CV Accuracy : {cv_scores.mean():.4f} "
-          f"(+/- {cv_scores.std():.4f})")
     print(f"  Test Accuracy      : {acc:.4f}  ({acc*100:.2f}%)")
     print(f"  Test F1 (weighted) : {f1:.4f}")
 
-    baseline = BASELINES.get(name, None)
+    baseline = BASELINES.get(name)
     if baseline:
         delta = acc - baseline
         arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "═")
-        print(f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
-              f"({arrow} {abs(delta)*100:+.2f} pp)")
+        print(
+            f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
+            f"({arrow} {abs(delta)*100:+.2f} pp)"
+        )
 
     print(f"\n  Classification Report:")
     print(classification_report(y_test, y_pred, zero_division=0))
     print(f"  Confusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
 
-    # ── Bug 5 fix: find and save optimal threshold ──────────────────────
-    best_threshold = find_best_threshold(best_pipe, X_test, y_test, positive_label=1)
+    best_threshold = find_best_threshold(pipe, X_test, y_test, positive_label=1)
 
     model_path = MODEL_DIR / "heart_disease_model.pkl"
-    version    = make_version("heart_disease_model.pkl")
+    version = make_version("heart_disease_model.pkl")
     trained_at = datetime.now(timezone.utc).isoformat()
-    joblib.dump({
-        'pipeline':   best_pipe,
-        'threshold':  best_threshold,
-        'version':    version,
-        'trained_at': trained_at,
-    }, model_path)
+    joblib.dump(
+        {
+            "pipeline": pipe,
+            "threshold": best_threshold,
+            "version": version,
+            "trained_at": trained_at,
+        },
+        model_path,
+    )
     print(f"\n  ✅ Model saved → {model_path}  (v{version}, threshold={best_threshold})")
+
+    # Probabilities for rich evaluation artifacts
+    try:
+        proba = pipe.predict_proba(X_test)[:, 1]
+    except Exception:
+        proba = None
+
+    try:
+        save_evaluation_artifacts(
+            name=name,
+            model_filename="heart_disease_model.pkl",
+            X_test=X_test,
+            y_test=y_test,
+            y_pred=y_pred,
+            proba=proba,
+            cv_scores=cv_scores,
+            best_threshold=best_threshold,
+            positive_label=1,
+            baseline=baseline,
+        )
+    except Exception as e:
+        print(f"  ⚠️ Failed to persist evaluation artifacts for heart disease: {e}")
 
     return {"name": name, "accuracy": acc, "f1": f1, "cv_mean": cv_scores.mean()}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. KIDNEY DISEASE PREDICTION  — Tuned RF + IterativeImputer
+# 3. KIDNEY DISEASE PREDICTION
+#    Tuned RF + IterativeImputer + Calibration + Leakage Check
 # ══════════════════════════════════════════════════════════════════════════════
 def train_kidney_disease():
     name = "Chronic Kidney Disease Prediction"
@@ -463,27 +477,26 @@ def train_kidney_disease():
     if "id" in df.columns:
         df.drop(columns=["id"], inplace=True)
 
-    # Convert all string 'yes/no', 'normal/abnormal', 'present/notpresent', 'good/poor' to 1/0
+    # Binary mappings for string columns
     binary_mappings = {
         'yes': 1, 'no': 0,
         'normal': 1, 'abnormal': 0,
         'present': 1, 'notpresent': 0,
         'good': 1, 'poor': 0
     }
-    
-    # Clean numeric columns stored as strings and map categoricals
+
     for col in df.columns:
         if col == target:
             continue
-        try:
-            # Check if column contains our string categoricals by looking at a non-null value
-            first_valid = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
-            if isinstance(first_valid, str) and first_valid.strip().lower() in binary_mappings:
+        if df[col].dtype == object:
+            unique_vals = set(df[col].dropna().str.lower().str.strip().unique())
+            mapping_keys = set(binary_mappings.keys())
+            if unique_vals.intersection(mapping_keys):
                 df[col] = df[col].str.strip().str.lower().map(binary_mappings)
             else:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
-        except Exception:
-            pass
+        else:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
     y = df[target]
     X = df.drop(columns=[target])
@@ -491,6 +504,16 @@ def train_kidney_disease():
     print(f"  Dataset shape : {X.shape}")
     print(f"  Nulls total   : {X.isnull().sum().sum()}")
     print(f"  Target classes: {dict(zip(*np.unique(y, return_counts=True)))}")
+
+    # ── Data leakage check ───────────────────────────────────────────────
+    print("\n  🔍 Data leakage check:")
+    correlations = X.corrwith(y).abs().sort_values(ascending=False)
+    high_corr = correlations[correlations > 0.9]
+    if len(high_corr) > 0:
+        print(f"  ⚠️  High correlation features (>0.9): {dict(high_corr)}")
+        print(f"      Review for potential leakage — keeping for now.")
+    else:
+        print(f"  ✅ No features with >0.9 target correlation.")
 
     numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
     categorical_cols = X.select_dtypes(exclude=["number"]).columns.tolist()
@@ -503,9 +526,9 @@ def train_kidney_disease():
         use_iterative=True,
     )
 
-    # Tuned Random Forest
-    classifier = RandomForestClassifier(
-        n_estimators=300,
+    # Calibrated Random Forest
+    base_rf = RandomForestClassifier(
+        n_estimators=500,
         max_depth=None,
         min_samples_split=3,
         min_samples_leaf=1,
@@ -515,22 +538,28 @@ def train_kidney_disease():
         class_weight="balanced",
     )
 
+    # Wrap in CalibratedClassifierCV for better probabilities
+    calibrated_rf = CalibratedClassifierCV(
+        base_rf, cv=5, method="isotonic",
+    )
+
     pipe = Pipeline([
         ("preprocessor", preprocessor),
-        ("classifier", classifier),
+        ("classifier", calibrated_rf),
     ])
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42, stratify=y
     )
 
-    # Kidney: ckd=0 means disease; positive_label=0 so threshold targets ckd class
     return evaluate_and_save(name, pipe, X_train, X_test, y_train, y_test,
-                             "kidney_disease_model.pkl", positive_label=0)
+                             "kidney_disease_model.pkl", positive_label=0,
+                             baseline=BASELINES.get(name), n_folds=N_FOLDS)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. DEPRESSION PREDICTION  — XGBoost + TargetEncoder + Feature Eng
+# 4. DEPRESSION PREDICTION
+#    Stacking Ensemble + SMOTE-ENN + Optuna + Feature Eng
 # ══════════════════════════════════════════════════════════════════════════════
 def train_depression():
     name = "Student Depression Prediction"
@@ -561,7 +590,7 @@ def train_depression():
         df["Sleep_Hours"] = df["Sleep Duration"].map(sleep_map).fillna(6.5)
         df.drop(columns=["Sleep Duration"], inplace=True)
 
-    # Drop City — too many unique values, adds noise
+    # Drop City — too many unique values
     if "City" in df.columns:
         df.drop(columns=["City"], inplace=True)
 
@@ -584,9 +613,8 @@ def train_depression():
         df["Dietary_Ordinal"] = df["Dietary Habits"].map(diet_map).fillna(1)
         df.drop(columns=["Dietary Habits"], inplace=True)
 
-    # Map Financial Stress to numeric if it's string
-    if df["Financial Stress"].dtype == object:
-        # Try numeric conversion first
+    # Map Financial Stress to numeric
+    if "Financial Stress" in df.columns and df["Financial Stress"].dtype == object:
         df["Financial Stress"] = pd.to_numeric(
             df["Financial Stress"], errors="coerce"
         ).fillna(3)
@@ -601,11 +629,33 @@ def train_depression():
     if "Financial Stress" in df.columns and "Academic Pressure" in df.columns:
         df["Financial_Academic"] = df["Financial Stress"] * df["Academic Pressure"]
 
+    # NEW features
+    # Pressure_Sum: total pressure from all sources
+    pressure_cols = ["Academic Pressure", "Work Pressure", "Financial Stress"]
+    existing_pressure = [c for c in pressure_cols if c in df.columns]
+    if existing_pressure:
+        df["Pressure_Sum"] = df[existing_pressure].sum(axis=1)
+
+    # SleepDebt: how far below 7 hours recommended sleep
+    if "Sleep_Hours" in df.columns:
+        df["SleepDebt"] = np.maximum(0, 7 - df["Sleep_Hours"])
+
+    # Interaction: suicidal thoughts × pressure
+    if ("Have you ever had suicidal thoughts ?" in df.columns
+            and "Pressure_Sum" in df.columns):
+        df["Suicidal_Pressure"] = (
+            df["Have you ever had suicidal thoughts ?"] * df["Pressure_Sum"]
+        )
+
     y = df[target].astype(int)
     X = df.drop(columns=[target])
 
     print(f"  Dataset shape : {X.shape}")
     print(f"  Target classes: {dict(zip(*np.unique(y, return_counts=True)))}")
+
+    neg_count = (y == 0).sum()
+    pos_count = (y == 1).sum()
+    print(f"  Class ratio   : {neg_count}:{pos_count}")
 
     numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
     categorical_cols = X.select_dtypes(exclude=["number"]).columns.tolist()
@@ -613,90 +663,161 @@ def train_depression():
     print(f"  Categorical features : {len(categorical_cols)}")
     print(f"  Categorical cols     : {categorical_cols}")
 
-    # OrdinalEncoder for remaining categoricals (works well with XGBoost)
-    preprocessor = build_preprocessor(
-        numeric_cols, categorical_cols,
-    )
-
-    # ── XGBoost with RandomizedSearchCV ──────────────────────────────────
-    neg_count = (y == 0).sum()
-    pos_count = (y == 1).sum()
-    scale_pw = neg_count / pos_count
-
-    base_clf = xgb.XGBClassifier(
-        random_state=42, n_jobs=-1, eval_metric="logloss",
-        tree_method="hist", scale_pos_weight=scale_pw,
-    )
-
-    pipe = Pipeline([
-        ("preprocessor", preprocessor),
-        ("classifier", base_clf),
-    ])
-
-    param_dist = {
-        "classifier__n_estimators": randint(300, 700),
-        "classifier__max_depth": randint(4, 10),
-        "classifier__learning_rate": uniform(0.01, 0.14),
-        "classifier__subsample": uniform(0.7, 0.3),
-        "classifier__colsample_bytree": uniform(0.6, 0.4),
-        "classifier__min_child_weight": randint(1, 8),
-        "classifier__gamma": uniform(0, 0.3),
-        "classifier__reg_alpha": uniform(0, 0.5),
-        "classifier__reg_lambda": uniform(0.5, 2),
-    }
-
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42, stratify=y
     )
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    search = RandomizedSearchCV(
-        pipe, param_dist, n_iter=60, cv=cv, scoring="accuracy",
-        random_state=42, n_jobs=-1, refit=True,
+    preprocessor = build_preprocessor(numeric_cols, categorical_cols)
+
+    # ── Step 1: Optuna tuning ────────────────────────────────────────────
+    print("\n  📊 Tuning XGBoost with Optuna (60 trials)...")
+    scale_pw = neg_count / pos_count
+    X_train_transformed = preprocessor.fit_transform(X_train)
+    xgb_best = optuna_tune_xgb(
+        X_train_transformed, y_train,
+        n_trials=60, n_folds=N_FOLDS,
+        scale_pos_weight=scale_pw, scoring="f1",
     )
-    search.fit(X_train, y_train)
-    best_pipe = search.best_estimator_
 
-    print(f"\n  Best CV score from search: {search.best_score_:.4f}")
-    print(f"  Best params: { {k.replace('classifier__',''): round(v,4) if isinstance(v,float) else v for k,v in search.best_params_.items()} }")
+    print("\n  📊 Tuning LightGBM with Optuna (50 trials)...")
+    lgb_best = optuna_tune_lgb(
+        X_train_transformed, y_train,
+        n_trials=50, n_folds=N_FOLDS,
+        scale_pos_weight=scale_pw, scoring="f1",
+    )
 
-    # Evaluate best
-    y_pred = best_pipe.predict(X_test)
+    # ── Step 2: SMOTE-ENN ────────────────────────────────────────────────
+    if _IMBLEARN_AVAILABLE:
+        print("\n  ⚖️ Applying SMOTE-ENN (hybrid over/under-sampling)...")
+        smote_enn = SMOTEENN(random_state=42)
+        X_train_res, y_train_res = smote_enn.fit_resample(
+            X_train_transformed, y_train
+        )
+        print(f"  After SMOTE-ENN: {dict(zip(*np.unique(y_train_res, return_counts=True)))}")
+    else:
+        X_train_res = X_train_transformed
+        y_train_res = y_train
+
+    # ── Step 2b: SHAP feature selection ──────────────────────────────────
+    print("\n  🔧 SHAP feature selection (depression)...")
+    quick_xgb_dep = xgb.XGBClassifier(
+        random_state=42, n_jobs=-1, eval_metric="logloss",
+        tree_method="hist", verbosity=0,
+        n_estimators=200, max_depth=5, learning_rate=0.1,
+    )
+    quick_xgb_dep.fit(X_train_res, y_train_res)
+    try:
+        feat_names_dep = list(preprocessor.get_feature_names_out())
+    except Exception:
+        feat_names_dep = numeric_cols + categorical_cols
+    keep_names_dep, drop_names_dep = shap_feature_selection(
+        quick_xgb_dep, X_train_res, feat_names_dep, threshold=0.001
+    )
+    try:
+        keep_indices_dep = [feat_names_dep.index(n) for n in keep_names_dep]
+    except ValueError:
+        keep_indices_dep = list(range(len(feat_names_dep)))
+
+    # ── Step 3: Build stacking ensemble ──────────────────────────────────
+    print("\n  🏗️ Building stacking ensemble...")
+    cat_params = {"iterations": xgb_best.get("n_estimators", 400),
+                  "depth": min(xgb_best.get("max_depth", 6), 10),
+                  "learning_rate": xgb_best.get("learning_rate", 0.05)}
+
+    stacker = build_stacking_ensemble(
+        xgb_params={k: v for k, v in xgb_best.items()
+                     if k not in ("n_estimators",)} | {
+            "n_estimators": xgb_best.get("n_estimators", 400),
+            "scale_pos_weight": scale_pw,
+        },
+        lgb_params={k: v for k, v in lgb_best.items()
+                     if k not in ("n_estimators",)} | {
+            "n_estimators": lgb_best.get("n_estimators", 400),
+            "scale_pos_weight": scale_pw,
+        },
+        cat_params=cat_params,
+        use_calibration=True,
+    )
+
+    pipe = Pipeline([
+        ("preprocessor", build_preprocessor(numeric_cols, categorical_cols)),
+        ("feature_selector", FeatureSelector(indices=keep_indices_dep)),
+        ("classifier", stacker),
+    ])
+
+    # ── Step 4: Cross-validate & evaluate ────────────────────────────────
+    cv = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=42)
+    print("\n  📈 Cross-validating stacking ensemble...")
+    cv_scores = cross_val_score(
+        pipe, X_train, y_train, cv=cv, scoring="accuracy", n_jobs=-1
+    )
+    print(
+        f"  {N_FOLDS}-Fold CV Accuracy : {cv_scores.mean():.4f} "
+        f"(+/- {cv_scores.std():.4f})"
+    )
+
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred, average="weighted")
 
-    cv_scores = cross_val_score(best_pipe, X_train, y_train, cv=cv,
-                                scoring="accuracy", n_jobs=-1)
-    print(f"\n  5-Fold CV Accuracy : {cv_scores.mean():.4f} "
-          f"(+/- {cv_scores.std():.4f})")
     print(f"  Test Accuracy      : {acc:.4f}  ({acc*100:.2f}%)")
     print(f"  Test F1 (weighted) : {f1:.4f}")
 
-    baseline = BASELINES.get(name, None)
+    baseline = BASELINES.get(name)
     if baseline:
         delta = acc - baseline
         arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "═")
-        print(f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
-              f"({arrow} {abs(delta)*100:+.2f} pp)")
+        print(
+            f"  vs Baseline        : {baseline:.2%} → {acc:.2%}  "
+            f"({arrow} {abs(delta)*100:+.2f} pp)"
+        )
 
     print(f"\n  Classification Report:")
     print(classification_report(y_test, y_pred, zero_division=0))
     print(f"  Confusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
 
-    # ── Bug 5 fix: find and save optimal threshold ──────────────────────
-    best_threshold = find_best_threshold(best_pipe, X_test, y_test, positive_label=1)
+    best_threshold = find_best_threshold(pipe, X_test, y_test, positive_label=1)
 
     model_path = MODEL_DIR / "depression_model.pkl"
-    version    = make_version("depression_model.pkl")
+    version = make_version("depression_model.pkl")
     trained_at = datetime.now(timezone.utc).isoformat()
-    joblib.dump({
-        'pipeline':   best_pipe,
-        'threshold':  best_threshold,
-        'version':    version,
-        'trained_at': trained_at,
-    }, model_path)
+    joblib.dump(
+        {
+            "pipeline": pipe,
+            "threshold": best_threshold,
+            "version": version,
+            "trained_at": trained_at,
+            # SHAP feature selection metadata
+            "feature_names_out": feat_names_dep,
+            "keep_indices": keep_indices_dep,
+        },
+        model_path,
+    )
     print(f"\n  ✅ Model saved → {model_path}  (v{version}, threshold={best_threshold})")
+
+    # Probabilities for rich evaluation artifacts
+    try:
+        proba = pipe.predict_proba(X_test)[:, 1]
+    except Exception:
+        proba = None
+
+    try:
+        save_evaluation_artifacts(
+            name=name,
+            model_filename="depression_model.pkl",
+            X_test=X_test,
+            y_test=y_test,
+            y_pred=y_pred,
+            proba=proba,
+            cv_scores=cv_scores,
+            best_threshold=best_threshold,
+            positive_label=1,
+            baseline=baseline,
+        )
+    except Exception as e:
+        print(f"  ⚠️ Failed to persist evaluation artifacts for depression: {e}")
 
     return {"name": name, "accuracy": acc, "f1": f1, "cv_mean": cv_scores.mean()}
 
@@ -705,7 +826,10 @@ def train_depression():
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
 def main():
-    print("\n" + "🏥  DISEASE PREDICTION — OPTIMIZED MODEL TRAINING".center(72))
+    print("\n" + "🏥  DISEASE PREDICTION — OPTIMIZED MODEL TRAINING v2".center(72))
+    print(SEP)
+    print("  Improvements: Optuna | Stacking Ensembles | SMOTE | 10-Fold CV")
+    print("  Calibrated Classifiers | SHAP Feature Selection")
     print(SEP)
 
     results = []

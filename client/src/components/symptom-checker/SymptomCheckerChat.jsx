@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import config from '../../config'
+import { getCheckerMode, chatSymptomChecker, endChatSession } from '../../api/symptomApi'
 import ReactMarkdown from 'react-markdown'
-import './SymptomCheckerChat.css'
+import '../../styles/symptom-checker-chat.css'
 
 /**
  * LLM-powered conversational symptom checker chat UI.
@@ -30,8 +30,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
     useEffect(() => {
         const checkMode = async () => {
             try {
-                const res = await fetch(`${config.API_URL}/symptom-checker/mode`)
-                const data = await res.json()
+                const data = await getCheckerMode()
                 setMode(data.mode || 'rule-based')
             } catch {
                 setMode('rule-based')
@@ -54,16 +53,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
         setLoading(true)
 
         try {
-            const res = await fetch(`${config.API_URL}/symptom-checker/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: text,
-                    session_id: sessionId,
-                }),
-            })
-
-            const data = await res.json()
+            const data = await chatSymptomChecker(text, sessionId)
 
             if (data.success && data.chat) {
                 if (!sessionId && data.chat.session_id) {
@@ -116,11 +106,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
     const handleEndSession = async () => {
         if (sessionId) {
             try {
-                await fetch(`${config.API_URL}/symptom-checker/chat/end`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId }),
-                })
+                await endChatSession(sessionId)
             } catch { /* ignore */ }
         }
         onClose?.()

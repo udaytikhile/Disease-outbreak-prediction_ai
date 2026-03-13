@@ -34,17 +34,11 @@ except ImportError:
     logger.warning("⚠️  matplotlib not installed — charts in PDF reports disabled.")
 
 
-DISEASE_NAMES = {
-    'heart': 'Heart Disease',
-    'diabetes': 'Diabetes',
-    'kidney': 'Chronic Kidney Disease',
-    'depression': 'Depression',
-}
+from ..constants import DISEASES, RISK_LEVELS
 
-RISK_COLORS = {
-    'High': '#ef4444',
-    'Low': '#22c55e',
-}
+DISEASE_NAMES = {k: v['name'] for k, v in DISEASES.items()}
+
+RISK_COLORS = {k: v['color'] for k, v in RISK_LEVELS.items()}
 
 
 def _create_risk_gauge(risk_level, confidence):
@@ -54,7 +48,7 @@ def _create_risk_gauge(risk_level, confidence):
 
     fig, ax = plt.subplots(figsize=(3, 1.5))
     color = RISK_COLORS.get(risk_level, '#6366f1')
-    conf_pct = confidence * 100 if confidence else 50
+    conf_pct = confidence if confidence else 50
 
     ax.barh(['Risk'], [conf_pct], color=color, height=0.4, alpha=0.85)
     ax.barh(['Risk'], [100 - conf_pct], left=[conf_pct], color='#e5e7eb', height=0.4)
@@ -166,7 +160,7 @@ def generate_pdf_report(prediction_data):
     summary_data = [
         ['Disease Screened', disease_name],
         ['Risk Level', risk_level],
-        ['Confidence', f'{confidence * 100:.1f}%' if confidence else 'N/A'],
+        ['Confidence', f'{confidence:.1f}%' if confidence else 'N/A'],
     ]
     summary_table = Table(summary_data, colWidths=[60 * mm, 100 * mm])
     summary_table.setStyle(TableStyle([

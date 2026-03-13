@@ -73,6 +73,23 @@ def predict_heart():
     except ValidationError as err:
         return jsonify({'success': False, 'error': err.messages}), 400
 
+    # region agent log
+    try:
+        import json, time
+        with open('/home/udaylinux/Desktop/Disease-outbreak-prediction_ai/.cursor/debug-941ec4.log', 'a') as f:
+            f.write(json.dumps({
+                "sessionId": "941ec4",
+                "runId": "pre-fix",
+                "hypothesisId": "B",
+                "location": "server/src/routes/predict.py:76",
+                "message": "predict_heart_request",
+                "data": {"disease": "heart"},
+                "timestamp": int(time.time() * 1000)
+            }) + "\n")
+    except Exception:
+        pass
+    # endregion
+
     response, status_code = model_service.predict('heart', data)
     if response.get('success'):
         _log_prediction('heart', data, response)
@@ -167,31 +184,26 @@ def get_diseases():
       200:
         description: List of supported disease models
     """
+    from ..constants import DISEASES
     return jsonify({
-        'diseases': [
-            {
-                'id': 'heart',
-                'name': 'Heart Disease',
-                'description': 'Predict cardiovascular disease risk',
-                'icon': '❤️'
-            },
-            {
-                'id': 'diabetes',
-                'name': 'Diabetes',
-                'description': 'Predict diabetes risk',
-                'icon': '🩺'
-            },
-            {
-                'id': 'kidney',
-                'name': 'Chronic Kidney Disease',
-                'description': 'Predict chronic kidney disease risk',
-                'icon': '🫘'
-            },
-            {
-                'id': 'depression',
-                'name': 'Depression',
-                'description': 'Predict depression risk',
-                'icon': '🧠'
-            },
-        ]
+        'diseases': list(DISEASES.values())
     })
+
+
+@predict_bp.route('/predict/metrics', methods=['GET'])
+def get_model_metrics():
+    """Get evaluation metrics for each disease model (internal/debug use).
+    ---
+    tags:
+      - Predictions
+    responses:
+      200:
+        description: Evaluation metrics for all loaded disease models
+    """
+    try:
+        metrics = model_service.get_evaluation_metrics()
+        return jsonify({'success': True, 'metrics': metrics}), 200
+    except Exception as e:
+        logger.warning(f"Failed to load model metrics: {e}")
+        return jsonify({'success': False, 'error': 'Could not load model metrics'}), 500
+

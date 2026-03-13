@@ -1,4 +1,4 @@
-import { usePredictionHistory } from '../../hooks/usePredictionHistory'
+import { usePredictionHistory } from '../hooks/usePredictionHistory'
 
 const HistoryPage = ({ onClose }) => {
   const { history, deletePrediction, clearHistory, getStatistics, exportAsCSV, exportAsJSON } = usePredictionHistory()
@@ -108,14 +108,7 @@ const HistoryPage = ({ onClose }) => {
                       })}
                     </p>
                   </div>
-                  <div className="prediction-badge" style={{
-                    background: prediction.risk_level === 'High' ? '#f45c43' : '#38ef7d',
-                    color: 'white',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600'
-                  }}>
+                  <div className={`prediction-badge ${prediction.risk_level === 'High' ? 'prediction-badge-high' : 'prediction-badge-low'}`}>
                     {prediction.risk_level === 'High' ? '⚠️ High Risk' : '✅ Low Risk'}
                   </div>
                 </div>
@@ -124,37 +117,29 @@ const HistoryPage = ({ onClose }) => {
                   {prediction.confidence && (
                     <div className="confidence-bar-small">
                       <p>Confidence: {prediction.confidence.toFixed(1)}%</p>
-                      <div style={{
-                        height: '8px',
-                        background: 'rgba(0, 0, 0, 0.1)',
-                        borderRadius: '4px',
-                        marginTop: '0.5rem',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${prediction.confidence}%`,
-                          background: prediction.risk_level === 'High' ? '#f45c43' : '#38ef7d',
-                          borderRadius: '4px'
-                        }}></div>
+                      <div className="confidence-bar-track">
+                        <div
+                          className={`confidence-bar-fill ${prediction.risk_level === 'High' ? 'confidence-fill-high' : 'confidence-fill-low'}`}
+                          style={{ width: `${prediction.confidence}%` }}
+                        ></div>
                       </div>
                     </div>
                   )}
 
-                  <p className="prediction-advice" style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>
+                  <p className="prediction-advice">
                     {prediction.advice}
                   </p>
                 </div>
 
                 <div className="prediction-footer">
                   <button
-                    className="btn btn-secondary"
+                    className="btn btn-secondary prediction-delete-btn"
                     onClick={() => {
                       if (window.confirm('Delete this prediction?')) {
                         deletePrediction(prediction.id)
                       }
                     }}
-                    style={{ width: 'auto', fontSize: '0.9rem', padding: '0.5rem 1rem' }}
+                    aria-label={`Delete ${prediction.disease} prediction from ${new Date(prediction.timestamp).toLocaleDateString()}`}
                   >
                     🗑️ Delete
                   </button>

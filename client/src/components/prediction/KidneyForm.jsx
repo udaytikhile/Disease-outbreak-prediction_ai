@@ -18,13 +18,30 @@ const KidneyForm = ({ onSubmit, loading }) => {
         return Math.round((filled / fields.length) * 100)
     }, [formData])
 
+    const validateField = (name, value) => {
+        let error = ''
+        if (name === 'age' && (!value || Number(value) < 1 || Number(value) > 120)) error = '1–120 years'
+        if (name === 'bp' && (!value || Number(value) < 30 || Number(value) > 200)) error = '30–200 mm Hg'
+        if (name === 'hemo' && (!value || Number(value) < 3 || Number(value) > 20)) error = '3–20 g/dL'
+        return error
+    }
+
     const validateForm = () => {
         const e = {}
-        if (!formData.age || Number(formData.age) < 1 || Number(formData.age) > 120) e.age = '1–120 years'
-        if (!formData.bp || Number(formData.bp) < 30 || Number(formData.bp) > 200) e.bp = '30–200 mm Hg'
-        if (!formData.hemo || Number(formData.hemo) < 3 || Number(formData.hemo) > 20) e.hemo = '3–20 g/dL'
+        Object.keys(formData).forEach(key => {
+            const err = validateField(key, formData[key])
+            if (err) e[key] = err
+        })
         setErrors(e)
         return Object.keys(e).length === 0
+    }
+
+    const handleBlur = (ev) => {
+        const { name, value } = ev.target
+        if (name) {
+            const error = validateField(name, value)
+            setErrors(prev => ({ ...prev, [name]: error }))
+        }
     }
 
     const set = (e) => {
@@ -38,7 +55,7 @@ const KidneyForm = ({ onSubmit, loading }) => {
     }
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onBlur={handleBlur}>
             <ProgressBar percent={progress} />
 
             {/* ── Core Vitals ── */}
@@ -53,7 +70,7 @@ const KidneyForm = ({ onSubmit, loading }) => {
 
             {/* ── Urine Analysis ── */}
             <Section icon="🧪" title="Urine Analysis" subtitle="Microscopic and biochemical urine tests">
-                <InputCard icon="⚗️" label="Specific Gravity">
+                <InputCard icon="⚗️" label="Specific Gravity" error={errors.sg}>
                     <select name="sg" value={formData.sg} onChange={set}>
                         <option value="1.005">1.005</option>
                         <option value="1.010">1.010</option>
@@ -62,7 +79,7 @@ const KidneyForm = ({ onSubmit, loading }) => {
                         <option value="1.025">1.025</option>
                     </select>
                 </InputCard>
-                <InputCard icon="💧" label="Albumin (0-5)">
+                <InputCard icon="💧" label="Albumin (0-5)" error={errors.al}>
                     <select name="al" value={formData.al} onChange={set}>
                         <option value="0">0 – None</option>
                         <option value="1">1 – Trace</option>
@@ -72,7 +89,7 @@ const KidneyForm = ({ onSubmit, loading }) => {
                         <option value="5">5 – Very High</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🍬" label="Sugar (0-5)">
+                <InputCard icon="🍬" label="Sugar (0-5)" error={errors.su}>
                     <select name="su" value={formData.su} onChange={set}>
                         <option value="0">0 – None</option>
                         <option value="1">1 – Trace</option>
@@ -82,28 +99,28 @@ const KidneyForm = ({ onSubmit, loading }) => {
                         <option value="5">5 – Very High</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🔬" label="Red Blood Cells">
+                <InputCard icon="🔬" label="Red Blood Cells" error={errors.rbc}>
                     <select name="rbc" value={formData.rbc} onChange={set}>
                         <option value="">Unknown</option>
                         <option value="1">Normal</option>
                         <option value="0">Abnormal</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🦠" label="Pus Cells">
+                <InputCard icon="🦠" label="Pus Cells" error={errors.pc}>
                     <select name="pc" value={formData.pc} onChange={set}>
                         <option value="">Unknown</option>
                         <option value="1">Normal</option>
                         <option value="0">Abnormal</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🧫" label="Pus Cell Clumps">
+                <InputCard icon="🧫" label="Pus Cell Clumps" error={errors.pcc}>
                     <select name="pcc" value={formData.pcc} onChange={set}>
                         <option value="">Unknown</option>
                         <option value="0">Not Present</option>
                         <option value="1">Present</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🔎" label="Bacteria">
+                <InputCard icon="🔎" label="Bacteria" error={errors.ba}>
                     <select name="ba" value={formData.ba} onChange={set}>
                         <option value="">Unknown</option>
                         <option value="0">Not Present</option>
@@ -145,32 +162,32 @@ const KidneyForm = ({ onSubmit, loading }) => {
 
             {/* ── Clinical History ── */}
             <Section icon="📋" title="Clinical History" subtitle="Pre-existing conditions and symptoms">
-                <InputCard icon="❤️‍🩹" label="Hypertension">
+                <InputCard icon="❤️‍🩹" label="Hypertension" error={errors.htn}>
                     <select name="htn" value={formData.htn} onChange={set}>
                         <option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🩺" label="Diabetes Mellitus">
+                <InputCard icon="🩺" label="Diabetes Mellitus" error={errors.dm}>
                     <select name="dm" value={formData.dm} onChange={set}>
                         <option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option>
                     </select>
                 </InputCard>
-                <InputCard icon="❤️" label="Coronary Artery Disease">
+                <InputCard icon="❤️" label="Coronary Artery Disease" error={errors.cad}>
                     <select name="cad" value={formData.cad} onChange={set}>
                         <option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🍽️" label="Appetite">
+                <InputCard icon="🍽️" label="Appetite" error={errors.appet}>
                     <select name="appet" value={formData.appet} onChange={set}>
                         <option value="">Unknown</option><option value="1">Good</option><option value="0">Poor</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🦶" label="Pedal Edema">
+                <InputCard icon="🦶" label="Pedal Edema" error={errors.pe}>
                     <select name="pe" value={formData.pe} onChange={set}>
                         <option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option>
                     </select>
                 </InputCard>
-                <InputCard icon="🩸" label="Anemia">
+                <InputCard icon="🩸" label="Anemia" error={errors.ane}>
                     <select name="ane" value={formData.ane} onChange={set}>
                         <option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option>
                     </select>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import logo from '../../assets/logo-icon.png'
 import { useLocation, Link } from 'react-router-dom'
 
-const Navbar = ({ onNavigate }) => {
+const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const [isDark, setIsDark] = useState(() => {
@@ -21,6 +21,18 @@ const Navbar = ({ onNavigate }) => {
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
         localStorage.setItem('theme', isDark ? 'dark' : 'light')
     }, [isDark])
+
+    // Prevent scrolling when mobile menu is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = ''
+        }
+        return () => {
+            document.body.style.overflow = ''
+        }
+    }, [isOpen])
 
     // Mobile menu is closed by clicking links directly or outside click
 
@@ -46,14 +58,15 @@ const Navbar = ({ onNavigate }) => {
 
                     <div className={`navbar-links ${isOpen ? 'open' : ''}`}>
                         {navLinks.map(link => (
-                            <button
+                            <Link
                                 key={link.path}
+                                to={link.path}
                                 className={`navbar-link ${isActive(link.path) ? 'active' : ''}`}
-                                onClick={() => onNavigate(link.path)}
+                                onClick={() => setIsOpen(false)}
                             >
                                 <span className="navbar-link-icon">{link.icon}</span>
                                 <span className="navbar-link-label">{link.label}</span>
-                            </button>
+                            </Link>
                         ))}
                     </div>
 

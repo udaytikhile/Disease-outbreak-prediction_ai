@@ -2,7 +2,7 @@
 Prediction history endpoints — persists and retrieves prediction logs from DB.
 """
 from flask import Blueprint, request, jsonify
-from ..extensions import db
+from ..extensions import db, limiter
 from ..models import PredictionLog
 
 history_bp = Blueprint('history', __name__)
@@ -54,6 +54,7 @@ def get_history():
 
 
 @history_bp.route('/history/<int:prediction_id>', methods=['DELETE'])
+@limiter.limit("5 per minute")
 def delete_prediction(prediction_id):
     """Delete a specific prediction record.
     ---
@@ -67,12 +68,18 @@ def delete_prediction(prediction_id):
     responses:
       200:
         description: Prediction deleted successfully
+      403:
+        description: Unauthorized — IP mismatch
       404:
         description: Prediction not found
     """
     prediction = db.session.get(PredictionLog, prediction_id)
     if not prediction:
         return jsonify({'success': False, 'error': 'Prediction not found'}), 404
+
+    # Basic ownership check: only the IP that created it can delete it
+    if prediction.ip_address and prediction.ip_address != request.remote_addr:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
     db.session.delete(prediction)
     db.session.commit()
@@ -89,22 +96,32 @@ def get_stats():
       200:
         description: Prediction statistics
     """
+    from sqlalchemy import func
+
     total = PredictionLog.query.count()
+
+    # Single GROUP BY query instead of 8 separate COUNT queries
+    rows = db.session.query(
+        PredictionLog.disease_type,
+        PredictionLog.risk_level,
+        func.count(PredictionLog.id)
+    ).group_by(PredictionLog.disease_type, PredictionLog.risk_level).all()
 
     stats_by_disease = {}
     for disease in ['heart', 'diabetes', 'kidney', 'depression']:
-        disease_count = PredictionLog.query.filter_by(disease_type=disease).count()
-        high_risk = PredictionLog.query.filter_by(
-            disease_type=disease, risk_level='High'
-        ).count()
-        stats_by_disease[disease] = {
-            'total': disease_count,
-            'high_risk': high_risk,
-            'low_risk': disease_count - high_risk,
-        }
+        stats_by_disease[disease] = {'total': 0, 'high_risk': 0, 'low_risk': 0}
+
+    for disease_type, risk_level, count in rows:
+        if disease_type in stats_by_disease:
+            stats_by_disease[disease_type]['total'] += count
+            if risk_level == 'High':
+                stats_by_disease[disease_type]['high_risk'] = count
+            elif risk_level == 'Low':
+                stats_by_disease[disease_type]['low_risk'] = count
 
     return jsonify({
         'success': True,
         'total_predictions': total,
         'by_disease': stats_by_disease,
     })
+

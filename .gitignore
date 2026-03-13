@@ -29,8 +29,7 @@ yarn-error.log*
 Thumbs.db
 
 # ─── ML (large binary models should not be in git) ──
-ml/models/*.pkl
-ml/models/*.sav
+ml/models/symptom_checker_model.pkl
 
 # ─── Docker ───────────────────────────────────────
 .docker-data/
@@ -40,3 +39,11 @@ ml/models/*.sav
 htmlcov/
 coverage.xml
 .coverage
+
+# ─── Runtime artifacts ────────────────────────────
+*.db
+*.log
+server_logs.txt
+project.log
+.ruff_cache/
+temp_venv/

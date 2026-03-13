@@ -11,12 +11,16 @@ Features:
   - Feature 4: version + trained_at metadata loaded from pkl
 """
 import joblib
+from .model_loader import safe_load_model
+import json
 import numpy as np
 import pandas as pd
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
 
 # ── Feature 1: SHAP import with graceful fallback ────────────────────────────
 try:
@@ -35,6 +39,7 @@ class ModelService:
             cls._instance = super(ModelService, cls).__new__(cls)
             cls._instance.models = {}
             cls._instance.loaded = False
+            cls._instance.model_dir = None
         return cls._instance
 
     # ── Model loading ────────────────────────────────────────────────────
@@ -57,6 +62,8 @@ class ModelService:
                     "Run 'python ml/scripts/train_all_models.py' first."
                 )
 
+            self.model_dir = model_path
+
             model_files = {
                 'diabetes':   'diabetes_model.pkl',
                 'heart':      'heart_disease_model.pkl',
@@ -68,31 +75,45 @@ class ModelService:
                 fpath = model_path / filename
                 if fpath.exists():
                     try:
-                        artifact = joblib.load(fpath)
+                        artifact = safe_load_model(fpath)
+                        if artifact is None:
+                            logger.error(f"  ❌ Skipping {filename}: could not load (see above)")
+                            continue
                         # Bug 5 / Feature 4: support versioned dict format
                         if isinstance(artifact, dict) and 'pipeline' in artifact:
                             pipeline   = artifact['pipeline']
                             threshold  = float(artifact.get('threshold', 0.5))
                             version    = artifact.get('version', 'unknown')
                             trained_at = artifact.get('trained_at', None)
+                            # Optional SHAP feature selection metadata from training
+                            feature_names_out = artifact.get('feature_names_out')
+                            keep_indices = artifact.get('keep_indices')
                         else:
                             # Backward compat: plain pipeline
                             pipeline   = artifact
                             threshold  = 0.5
                             version    = 'legacy'
                             trained_at = None
+                            feature_names_out = None
+                            keep_indices = None
 
                         # Feature 1: build SHAP explainer for this model
                         explainer, feature_names = self._build_shap_explainer(pipeline)
 
                         self.models[disease] = {
-                            'pipeline':      pipeline,
-                            'threshold':     threshold,
-                            'version':       version,
-                            'trained_at':    trained_at,
-                            'explainer':     explainer,       # may be None
-                            'feature_names': feature_names,  # may be None
+                            'pipeline':          pipeline,
+                            'threshold':         threshold,
+                            'version':           version,
+                            'trained_at':        trained_at,
+                            'explainer':         explainer,          # may be None
+                            'feature_names':     feature_names,      # SHAP-prepared names (may be None)
+                            'feature_names_out': feature_names_out,  # saved from training (may be None)
+                            'keep_indices':      keep_indices,       # SHAP-selected indices (may be None)
                         }
+
+                        # Light-weight feature parity check between training and runtime preprocessor
+                        if feature_names_out is not None:
+                            self._check_feature_parity(disease, pipeline, feature_names_out)
                         logger.info(
                             f"  ✅ Loaded {disease} model from {filename} "
                             f"(v{version}, threshold={threshold}, "
@@ -121,6 +142,32 @@ class ModelService:
             self.loaded = False
             raise RuntimeError(f"Model loading failed: {e}") from e
 
+    @staticmethod
+    def _check_feature_parity(disease: str, pipeline, saved_feature_names):
+        """Warn if runtime preprocessor feature names differ from training-time names.
+
+        This helps catch silent mismatches between training and inference
+        feature engineering (e.g., adding/removing columns without retraining).
+        """
+        try:
+            preprocessor = pipeline.named_steps.get('preprocessor')
+            if preprocessor is None:
+                return
+            try:
+                runtime_names = list(preprocessor.get_feature_names_out())
+            except Exception:
+                return
+            if len(runtime_names) != len(saved_feature_names) or runtime_names != list(saved_feature_names):
+                logger.warning(
+                    "Feature mismatch for %s model: training feature_names_out length=%d, "
+                    "runtime length=%d. Ensure training scripts and ModelService builders are aligned.",
+                    disease,
+                    len(saved_feature_names),
+                    len(runtime_names),
+                )
+        except Exception as e:
+            logger.debug(f"Feature parity check failed for {disease}: {e}")
+
     # ── Feature 4: version info ──────────────────────────────────────────
     def get_model_versions(self) -> dict:
         """Return version metadata for all loaded models (for /health endpoint)."""
@@ -133,13 +180,110 @@ class ModelService:
             for disease, info in self.models.items()
         }
 
+    def get_evaluation_metrics(self) -> dict:
+        """Return evaluation metrics loaded from JSON artifacts next to model files.
+
+        Each metrics file is expected to be saved as <model>.metrics.json by the
+        training pipeline. Missing or unreadable files are skipped.
+        """
+        if not self.loaded or self.model_dir is None:
+            return {}
+
+        metrics = {}
+        model_files = {
+            'diabetes':   'diabetes_model.pkl',
+            'heart':      'heart_disease_model.pkl',
+            'kidney':     'kidney_disease_model.pkl',
+            'depression': 'depression_model.pkl',
+        }
+
+        for disease, filename in model_files.items():
+            metrics_path = self.model_dir / f"{Path(filename).stem}.metrics.json"
+            if not metrics_path.exists():
+                continue
+            try:
+                with open(metrics_path, "r", encoding="utf-8") as f:
+                    metrics[disease] = json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load metrics for {disease} from {metrics_path}: {e}")
+
+        return metrics
+
     # ── Feature 1: SHAP helpers ──────────────────────────────────────────
+    _shap_xgb_patched = False   # class-level flag to avoid double-patching
+
+    @staticmethod
+    def _patch_shap_xgboost_compat():
+        """Monkey-patch SHAP's decode_ubjson_buffer to fix XGBoost 2.0+ base_score.
+
+        XGBoost 2.0+ stores base_score as a bracketed string like '[5.000088E-1]'
+        in its UBJ model dump. SHAP's XGBTreeModelLoader does float(base_score)
+        on the decoded dict which fails. We patch the decode function to clean
+        the value immediately after decoding.
+        """
+        if ModelService._shap_xgb_patched:
+            return
+        try:
+            import shap.explainers._tree as _tree_mod
+            _orig_decode = _tree_mod.decode_ubjson_buffer
+
+            def _clean_decode(fd):
+                result = _orig_decode(fd)
+                # Fix base_score if present
+                try:
+                    lmp = result['learner']['learner_model_param']
+                    bs = lmp.get('base_score', '')
+                    if isinstance(bs, str) and bs.startswith('[') and bs.endswith(']'):
+                        lmp['base_score'] = bs.strip('[]')
+                except (KeyError, TypeError):
+                    pass
+                return result
+
+            _tree_mod.decode_ubjson_buffer = _clean_decode
+            ModelService._shap_xgb_patched = True
+            logger.debug("Patched SHAP decode_ubjson_buffer for XGBoost compat")
+        except Exception as e:
+            logger.debug(f"SHAP XGBoost compat patch failed: {e}")
+
+    @staticmethod
+    def _unwrap_tree_model(classifier):
+        """Unwrap CalibratedClassifierCV / StackingClassifier to find a tree model.
+
+        Returns the first tree-based estimator suitable for SHAP TreeExplainer,
+        or None if no tree model can be found.
+        """
+        # Direct tree model
+        if hasattr(classifier, 'get_booster') or hasattr(classifier, 'estimators_'):
+            return classifier
+
+        # CalibratedClassifierCV wraps an estimator
+        if hasattr(classifier, 'calibrated_classifiers_'):
+            inner = classifier.calibrated_classifiers_[0].estimator
+            return ModelService._unwrap_tree_model(inner)
+
+        # StackingClassifier — use the first base estimator
+        if hasattr(classifier, 'estimators_') and isinstance(classifier.estimators_, list):
+            for est in classifier.estimators_:
+                result = ModelService._unwrap_tree_model(est)
+                if result is not None:
+                    return result
+
+        # Named estimators on StackingClassifier (fitted)
+        if hasattr(classifier, 'named_estimators_'):
+            for name, est in classifier.named_estimators_.items():
+                result = ModelService._unwrap_tree_model(est)
+                if result is not None:
+                    return result
+
+        return None
+
     @staticmethod
     def _build_shap_explainer(pipeline):
         """Build a SHAP TreeExplainer for the classifier step of a sklearn Pipeline.
 
         Returns (explainer, feature_names_list) or (None, None) on failure.
-        Feature names are extracted from the ColumnTransformer 'preprocessor' step.
+        Handles stacking ensembles and CalibratedClassifierCV by unwrapping
+        to find the first tree-based estimator.
         """
         if not _SHAP_AVAILABLE:
             return None, None
@@ -148,7 +292,17 @@ class ModelService:
             if classifier is None:
                 return None, None
 
-            explainer = shap.TreeExplainer(classifier)
+            # Unwrap to find tree model inside stacking/calibration wrappers
+            tree_model = ModelService._unwrap_tree_model(classifier)
+            if tree_model is None:
+                logger.info("No tree model found for SHAP — skipping.")
+                return None, None
+
+            # Apply XGBoost/SHAP compatibility patch if needed
+            if hasattr(tree_model, 'get_booster'):
+                ModelService._patch_shap_xgboost_compat()
+
+            explainer = shap.TreeExplainer(tree_model)
 
             # Extract feature names from the preprocessor's output
             feature_names = None
@@ -187,14 +341,22 @@ class ModelService:
             # Transform input to the feature space the classifier sees
             X_transformed = preprocessor.transform(features_df)
 
-            # SHAP values: shape (n_samples, n_features) for binary class 1
+            # SHAP values: shape depends on model and SHAP version
             sv = explainer.shap_values(X_transformed)
+            
             # For multi-output (list), index 1 = positive class
             if isinstance(sv, list):
                 shap_vals = sv[1][0]
             else:
-                # Single array — XGBoost returns shape (n_samples, n_features) directly
-                shap_vals = sv[0] if sv.ndim == 2 else sv
+                # Numpy array
+                if sv.ndim == 3:
+                    # (n_samples, n_features, n_classes)
+                    shap_vals = sv[0, :, 1]
+                elif sv.ndim == 2:
+                    # (n_samples, n_features)
+                    shap_vals = sv[0]
+                else:
+                    shap_vals = sv
 
             if feature_names is None or len(feature_names) != len(shap_vals):
                 # Fall back to generic names
@@ -213,10 +375,18 @@ class ModelService:
             contributions = []
             for idx, sv_val in indexed:
                 pct = round(abs(sv_val) / total_abs * 100, 1)
+                
+                # Kidney disease target encoding: ckd(disease)=0, notckd(healthy)=1
+                # Normal target encoding: disease=1, healthy=0
+                if disease_type == 'kidney':
+                    direction = 'protective' if sv_val > 0 else 'risk'
+                else:
+                    direction = 'risk' if sv_val > 0 else 'protective'
+                    
                 contributions.append({
                     'feature':      clean_name(feature_names[idx]),
                     'contribution': round(float(sv_val), 4),
-                    'direction':    'risk' if sv_val > 0 else 'protective',
+                    'direction':    direction,
                     'pct':          pct,
                 })
 
@@ -264,6 +434,12 @@ class ModelService:
         df['GenHlth_PhysHlth'] = df['GenHlth'] * df['PhysHlth']
         df['GenHlth_MentHlth'] = df['GenHlth'] * df['MentHlth']
         df['BMI_HighBP'] = df['BMI'] * df['HighBP']
+        # New v2 interaction features
+        df['BMI_GenHlth'] = df['BMI'] * df['GenHlth']
+        df['Age_HighBP_HighChol'] = df['Age'] * df['HighBP'] * df['HighChol']
+        df['PhysHlth_MentHlth'] = df['PhysHlth'] * df['MentHlth']
+        df['BMI_PhysActivity'] = df['BMI'] * (1 - df['PhysActivity'])
+        df['Income_Education'] = df['Income'] * df['Education']
         return df
 
     @staticmethod
@@ -289,8 +465,11 @@ class ModelService:
             'thal':     ModelService._safe_str(data.get('thal')),
         }
         df = pd.DataFrame([row])
-        # Engineered feature
+        # Engineered features
         df['age_sq'] = df['age'] ** 2
+        # New v2 interaction features
+        df['chol_thalch_ratio'] = df['chol'] / (df['thalch'].replace(0, np.nan) + 1)
+        df['trestbps_age'] = df['trestbps'] * df['age']
         return df
 
     @staticmethod
@@ -366,6 +545,14 @@ class ModelService:
         df['Pressure_vs_Satisfaction'] = df['Academic Pressure'] - df['Study Satisfaction']
         df['WorkStudy_Sleep_Ratio'] = df['Work/Study Hours'] / (sleep_hours + 0.1)
         df['Financial_Academic'] = df['Financial Stress'] * df['Academic Pressure']
+        # New v2 features
+        df['Pressure_Sum'] = (
+            df['Academic Pressure'] + df['Work Pressure'] + df['Financial Stress']
+        )
+        df['SleepDebt'] = np.maximum(0, 7 - sleep_hours)
+        df['Suicidal_Pressure'] = (
+            df['Have you ever had suicidal thoughts ?'] * df['Pressure_Sum']
+        )
         return df
 
     # ── Prediction ───────────────────────────────────────────────────────
@@ -394,7 +581,12 @@ class ModelService:
                 probability = pipeline.predict_proba(features_df)[0]
                 pos_prob    = float(probability[1])  # P(positive class)
                 prediction  = 1 if pos_prob >= threshold else 0
-                confidence  = round(max(float(probability[0]), float(probability[1])) * 100, 1)
+                
+                # Confidence should be tied to the PREDICTED class probability
+                # If prediction is 1 (Positive), confidence is pos_prob
+                # If prediction is 0 (Negative), confidence is 1 - pos_prob
+                confidence_prob = pos_prob if prediction == 1 else (1.0 - pos_prob)
+                confidence  = round(confidence_prob * 100, 1)
             except AttributeError:
                 # Fallback for models without predict_proba
                 prediction = int(pipeline.predict(features_df)[0])
@@ -423,12 +615,8 @@ class ModelService:
                 },
             }
 
-            disease_names = {
-                'heart': 'Heart Disease',
-                'diabetes': 'Diabetes',
-                'kidney': 'Chronic Kidney Disease',
-                'depression': 'Depression',
-            }
+            from ..constants import DISEASES
+            disease_names = {k: v['name'] for k, v in DISEASES.items()}
 
             risk_level = "High" if prediction == 1 else "Low"
             # Kidney disease: ckd=0 is disease, notckd=1 is healthy

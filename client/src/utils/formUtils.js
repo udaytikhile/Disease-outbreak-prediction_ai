@@ -11,7 +11,7 @@ export const convertNumericFields = (data, stringFields = []) => {
     for (const [key, value] of Object.entries(data)) {
         if (stringFields.includes(key) || value === '' || value === null || value === undefined) {
             converted[key] = value
-        } else if (!isNaN(value) && value !== '') {
+        } else if (value !== '' && Number.isFinite(Number(value))) {
             converted[key] = Number(value)
         } else {
             converted[key] = value

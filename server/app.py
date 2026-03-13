@@ -1,5 +1,16 @@
 import os
 import logging
+from pathlib import Path
+
+# Load .env file if present (pip install python-dotenv)
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass
+
 from src import create_app
 
 # Create app instance

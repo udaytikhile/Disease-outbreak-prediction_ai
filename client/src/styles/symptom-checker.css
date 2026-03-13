@@ -492,6 +492,13 @@
   font-family: 'Outfit', 'Inter', sans-serif;
 }
 
+.confidence-band {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
 .confidence-bar-track {
   height: 8px;
   background: var(--border-color);
@@ -1060,8 +1067,9 @@
   text-align: left;
 }
 
+.autocomplete-item.active,
 .autocomplete-item:hover {
-  background: rgba(99, 102, 241, 0.06);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .autocomplete-item:not(:last-child) {
@@ -1835,4 +1843,3 @@
     flex-wrap: wrap;
   }
 }
-

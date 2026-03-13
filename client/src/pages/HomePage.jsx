@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
-import heartDiseaseImg from '../../assets/heart-disease.png'
-import diabetesImg from '../../assets/diabetes.png'
-import kidneyDiseaseImg from '../../assets/kidney-disease.png'
-import depressionImg from '../../assets/depression.png'
-import featureAiImg from '../../assets/feature-ai.png'
-import featureScreeningImg from '../../assets/feature-screening.png'
-import featurePrivacyImg from '../../assets/feature-privacy.png'
-import featureReportsImg from '../../assets/feature-reports.png'
+import heartDiseaseImg from '../assets/heart-disease.png'
+import diabetesImg from '../assets/diabetes.png'
+import kidneyDiseaseImg from '../assets/kidney-disease.png'
+import depressionImg from '../assets/depression.png'
+import featureAiImg from '../assets/feature-ai.png'
+import featureScreeningImg from '../assets/feature-screening.png'
+import featurePrivacyImg from '../assets/feature-privacy.png'
+import featureReportsImg from '../assets/feature-reports.png'
 
 const HomePage = ({ onSelectDisease, onViewChecker }) => {
     const diseases = [

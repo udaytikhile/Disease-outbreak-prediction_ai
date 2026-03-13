@@ -28,7 +28,7 @@ SWAGGER_TEMPLATE = {
         },
         {
             "name": "Symptom Checker",
-            "description": "AI sympom analysis and triage",
+            "description": "AI symptom analysis and triage",
         },
         {
             "name": "History",

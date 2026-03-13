@@ -2,7 +2,7 @@
 Marshmallow schemas for request validation.
 Each schema matches the features expected by the corresponding ML pipeline.
 """
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, pre_load
 
 
 class DiabetesPredictionSchema(Schema):
@@ -59,30 +59,42 @@ class KidneyPredictionSchema(Schema):
     """Chronic Kidney Disease dataset features — all numeric after preprocessing.
     Most fields are optional since the model uses IterativeImputer for missing data.
     """
-    age = fields.Float(required=True)
-    bp = fields.Float(required=True)
-    sg = fields.Float(required=True)
-    al = fields.Float(required=True)
-    su = fields.Float(required=True)
-    rbc = fields.Float(required=True)
-    pc = fields.Float(required=True)
-    pcc = fields.Float(required=True)
-    ba = fields.Float(required=True)
-    bgr = fields.Float(required=True)
-    bu = fields.Float(required=True)
-    sc = fields.Float(required=True)
-    sod = fields.Float(required=True)
-    pot = fields.Float(required=True)
-    hemo = fields.Float(required=True)
-    pcv = fields.Float(required=True)
-    wc = fields.Float(required=True)
-    rc = fields.Float(required=True)
-    htn = fields.Float(required=True)
-    dm = fields.Float(required=True)
-    cad = fields.Float(required=True)
-    appet = fields.Float(required=True)
-    pe = fields.Float(required=True)
-    ane = fields.Float(required=True)
+    age = fields.Float(required=False, allow_none=True)
+    bp = fields.Float(required=False, allow_none=True)
+    sg = fields.Float(required=False, allow_none=True)
+    al = fields.Float(required=False, allow_none=True)
+    su = fields.Float(required=False, allow_none=True)
+    rbc = fields.Float(required=False, allow_none=True)
+    pc = fields.Float(required=False, allow_none=True)
+    pcc = fields.Float(required=False, allow_none=True)
+    ba = fields.Float(required=False, allow_none=True)
+    bgr = fields.Float(required=False, allow_none=True)
+    bu = fields.Float(required=False, allow_none=True)
+    sc = fields.Float(required=False, allow_none=True)
+    sod = fields.Float(required=False, allow_none=True)
+    pot = fields.Float(required=False, allow_none=True)
+    hemo = fields.Float(required=False, allow_none=True)
+    pcv = fields.Float(required=False, allow_none=True)
+    wc = fields.Float(required=False, allow_none=True)
+    rc = fields.Float(required=False, allow_none=True)
+    htn = fields.Float(required=False, allow_none=True)
+    dm = fields.Float(required=False, allow_none=True)
+    cad = fields.Float(required=False, allow_none=True)
+    appet = fields.Float(required=False, allow_none=True)
+    pe = fields.Float(required=False, allow_none=True)
+    ane = fields.Float(required=False, allow_none=True)
+
+    @pre_load
+    def process_empty_strings(self, data, **kwargs):
+        """Convert empty strings to None so Float validation allows them."""
+        # Marshmallow requires modifying dict or returning new dict
+        result = {}
+        for key, val in data.items():
+            if val == "":
+                result[key] = None
+            else:
+                result[key] = val
+        return result
 
 
 

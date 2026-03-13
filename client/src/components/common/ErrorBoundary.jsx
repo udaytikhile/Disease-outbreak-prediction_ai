@@ -33,7 +33,7 @@ class ErrorBoundary extends Component {
                         <p className="error-boundary-message">
                             An unexpected error occurred. Please try again or return to the home page.
                         </p>
-                        {this.state.error && (
+                        {this.state.error && import.meta.env.DEV && (
                             <details className="error-boundary-details">
                                 <summary>Technical Details</summary>
                                 <pre>{this.state.error.toString()}</pre>

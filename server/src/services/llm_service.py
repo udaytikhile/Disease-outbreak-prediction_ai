@@ -6,6 +6,7 @@ to the existing rule-based symptom checker when no API key is configured.
 """
 import logging
 import os
+import time
 import uuid
 
 logger = logging.getLogger('api')
@@ -18,7 +19,13 @@ except ImportError:
     logger.warning("⚠️  google-generativeai not installed — LLM symptom checker disabled.")
 
 # In-memory session store (swap for Redis in production)
+# WARNING: This dict is per-process. With Gunicorn -w 4, each worker has
+# its own copy — a session created in worker 1 won't exist in worker 2.
+# TODO: Replace with Flask-Session backed by Redis or database for production.
 _sessions = {}
+_MAX_SESSIONS = 1000
+_SESSION_TTL_SECONDS = 1800  # 30 minutes
+_configured = False
 
 MEDICAL_SYSTEM_PROMPT = """You are a professional AI health assistant. Your role is to:
 
@@ -60,12 +67,27 @@ def is_llm_available():
     return bool(api_key.strip())
 
 
+def _evict_stale_sessions():
+    """Remove sessions older than TTL."""
+    now = time.time()
+    stale = [sid for sid, s in _sessions.items()
+             if now - s.get('created_at', 0) > _SESSION_TTL_SECONDS]
+    for sid in stale:
+        _sessions.pop(sid, None)
+
+
 def create_session():
     """Create a new chat session and return session ID."""
+    _evict_stale_sessions()
+    # Cap total sessions to prevent memory exhaustion
+    if len(_sessions) >= _MAX_SESSIONS:
+        oldest = min(_sessions, key=lambda k: _sessions[k].get('created_at', 0))
+        _sessions.pop(oldest, None)
     session_id = str(uuid.uuid4())
     _sessions[session_id] = {
         'history': [],
         'turn_count': 0,
+        'created_at': time.time(),
     }
     return session_id
 
@@ -89,8 +111,10 @@ def chat(session_id, user_message):
             'mode': 'fallback',
         }
 
-    api_key = os.getenv('GEMINI_API_KEY', '')
-    genai.configure(api_key=api_key)
+    global _configured
+    if not _configured:
+        genai.configure(api_key=os.getenv('GEMINI_API_KEY', ''))
+        _configured = True
 
     # Get or create session
     if session_id not in _sessions:

@@ -11,7 +11,7 @@
  * @module App
  */
 import { useEffect, useMemo, lazy, Suspense } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { PredictionProvider } from './context/PredictionContext'
 import { usePrediction } from './hooks/usePrediction'
 
@@ -28,13 +28,13 @@ const DiabetesForm = lazy(() => import('./components/prediction/DiabetesForm'))
 const KidneyForm = lazy(() => import('./components/prediction/KidneyForm'))
 const DepressionForm = lazy(() => import('./components/prediction/DepressionForm'))
 
-const HomePage = lazy(() => import('./components/pages/HomePage'))
-const NotFoundPage = lazy(() => import('./components/pages/NotFoundPage'))
-const UserProfile = lazy(() => import('./components/pages/UserProfile'))
-const HealthTips = lazy(() => import('./components/pages/HealthTips'))
+const HomePage = lazy(() => import('./pages/HomePage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const UserProfile = lazy(() => import('./pages/UserProfilePage'))
+const HealthTips = lazy(() => import('./pages/HealthTipsPage'))
 
-const HistoryPage = lazy(() => import('./components/dashboard/HistoryPage'))
-const Dashboard = lazy(() => import('./components/dashboard/Dashboard'))
+const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const Dashboard = lazy(() => import('./pages/DashboardPage'))
 const SymptomChecker = lazy(() => import('./components/symptom-checker/SymptomChecker'))
 const SymptomCheckerChat = lazy(() => import('./components/symptom-checker/SymptomCheckerChat'))
 
@@ -63,10 +63,20 @@ function AppRoutes() {
     document.documentElement.setAttribute('data-theme', saved || 'light')
   }, [])
 
+  // Move focus to main content on route change for accessibility
+  const location = useLocation()
+  useEffect(() => {
+    const main = document.getElementById('main-content')
+    if (main) {
+      main.setAttribute('tabindex', '-1')
+      main.focus({ preventScroll: true })
+    }
+  }, [location.pathname])
+
   return (
     <div className="app-container">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <Navbar onNavigate={(path) => navigate(path)} />
+      <Navbar />
       <ToastContainer />
       {loading && <LoadingAnalysis disease={loadingDisease} />}
       <ErrorBoundary>
