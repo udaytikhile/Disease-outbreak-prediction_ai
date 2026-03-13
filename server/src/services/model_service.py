@@ -10,7 +10,6 @@ Features:
   - Feature 1: SHAP TreeExplainer for top-3 feature contributions
   - Feature 4: version + trained_at metadata loaded from pkl
 """
-import joblib
 from .model_loader import safe_load_model
 import json
 import numpy as np

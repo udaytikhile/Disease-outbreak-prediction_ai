@@ -8,6 +8,8 @@ import io
 import logging
 from datetime import datetime, timezone
 
+from ..constants import DISEASES, RISK_LEVELS
+
 logger = logging.getLogger('api')
 
 try:
@@ -32,9 +34,6 @@ try:
 except ImportError:
     _MATPLOTLIB_AVAILABLE = False
     logger.warning("⚠️  matplotlib not installed — charts in PDF reports disabled.")
-
-
-from ..constants import DISEASES, RISK_LEVELS
 
 DISEASE_NAMES = {k: v['name'] for k, v in DISEASES.items()}
 

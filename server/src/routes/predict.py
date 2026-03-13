@@ -75,7 +75,8 @@ def predict_heart():
 
     # region agent log
     try:
-        import json, time
+        import json
+        import time
         with open('/home/udaylinux/Desktop/Disease-outbreak-prediction_ai/.cursor/debug-941ec4.log', 'a') as f:
             f.write(json.dumps({
                 "sessionId": "941ec4",
