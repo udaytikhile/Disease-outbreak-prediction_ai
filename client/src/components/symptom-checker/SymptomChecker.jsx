@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import config from '../../config'
-import BodyMap, { REGION_SYMPTOMS } from './BodyMap'
+import BodyMap from './BodyMap'
+import { REGION_SYMPTOMS } from './constants'
 
 const QUICK_SYMPTOMS = [
   'Chest Pain', 'Shortness of Breath', 'Fatigue', 'Frequent Urination',
