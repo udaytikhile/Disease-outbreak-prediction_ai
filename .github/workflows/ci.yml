@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r server/requirements.txt
           pip install pytest pytest-cov
 
       - name: Run backend tests
@@ -108,7 +108,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r server/requirements.txt
           pip install pip-audit
 
       - name: Audit Python dependencies
@@ -125,10 +125,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build API image
-        run: docker build -f Dockerfile.server -t outbreak-api:latest .
+        run: docker build -f deploy/Dockerfile.server -t outbreak-api:latest .
 
       - name: Build Web image
-        run: docker build -f Dockerfile.client -t outbreak-web:latest .
+        run: docker build -f deploy/Dockerfile.client -t outbreak-web:latest .
 
       - name: Verify compose config
-        run: docker compose config --quiet
+        run: cd deploy && docker compose config --quiet
