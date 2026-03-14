@@ -82,9 +82,11 @@
   font-weight: 800;
   letter-spacing: -2px;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: textShimmer 3s ease-in-out 0.5s 1;
 }
 
 .clinical-hero-subtitle {
@@ -290,9 +292,15 @@
   border-radius: 20px;
   overflow: hidden;
   text-align: left;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  will-change: transform, box-shadow;
+  /* #7: CSS custom property for staggered animation delay */
+  animation: fadeInUp 0.5s ease both;
+  animation-delay: calc(var(--i, 0) * 0.1s);
 }
 
 .clinical-feature-card:hover {
@@ -386,9 +394,14 @@
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid #e2e8f0;
   position: relative;
+  will-change: transform, box-shadow;
+  animation: fadeInUp 0.5s ease both;
+  animation-delay: calc(var(--i, 0) * 0.15s);
 }
 
 .clinical-disease-accent {
@@ -489,10 +502,23 @@
 
 .clinical-metric-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* ---- Scroll-Reveal for Homepage Sections (progressive enhancement) ---- */
+@supports (animation-timeline: view()) {
+
+  .clinical-how-it-works,
+  .clinical-features-section,
+  .clinical-diseases-section,
+  .clinical-disclaimer-section {
+    animation: scrollReveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
 }
 
 /* ---- Disclaimer Section ---- */
@@ -542,7 +568,7 @@
 .clinical-footer {
   padding: 64px 0 32px;
   background: #0f172a;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .clinical-footer-grid {
@@ -566,7 +592,7 @@
 
 .clinical-footer-brand p {
   font-size: 15px;
-  color: #94a3b8;
+  color: #64748b;
   line-height: 1.6;
   max-width: 320px;
 }
@@ -582,7 +608,7 @@
 
 .clinical-footer-col a {
   display: block;
-  color: #94a3b8;
+  color: #64748b;
   text-decoration: none;
   margin-bottom: 12px;
   font-size: 15px;
@@ -597,7 +623,7 @@
   display: block;
   background: none;
   border: none;
-  color: #94a3b8;
+  color: #64748b;
   cursor: pointer;
   padding: 0;
   font: inherit;
@@ -612,14 +638,15 @@
 }
 
 /* ---- Professional Social Links ---- */
-.footer-social-link {
-  display: flex !important;
+/* Higher specificity to override .clinical-footer-col a without !important */
+.clinical-footer-col .footer-social-link {
+  display: flex;
   align-items: center;
   gap: 10px;
-  color: #94a3b8 !important;
+  color: #64748b;
   text-decoration: none;
-  margin-bottom: 14px !important;
-  font-size: 14px !important;
+  margin-bottom: 14px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.25s ease;
   background: none;
@@ -631,8 +658,8 @@
   width: 100%;
 }
 
-.footer-social-link:hover {
-  color: #ffffff !important;
+.clinical-footer-col .footer-social-link:hover {
+  color: #ffffff;
   transform: translateX(4px);
 }
 
@@ -647,7 +674,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
   transition: all 0.25s ease;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .footer-social-link:hover .footer-social-icon {
@@ -657,7 +684,7 @@
 }
 
 .footer-social-icon.linkedin {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .footer-social-link:hover .footer-social-icon.linkedin {
@@ -667,7 +694,7 @@
 }
 
 .footer-social-icon.instagram {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .footer-social-link:hover .footer-social-icon.instagram {
@@ -768,20 +795,8 @@
     gap: 20px;
   }
 
-  .hiw-steps {
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .hiw-connector {
-    transform: rotate(90deg);
-    padding-top: 0;
-  }
-
+  /* #5: Only the difference from 1024px breakpoint — narrower max-width */
   .hiw-step {
-    flex: none;
-    width: 100%;
     max-width: 300px;
   }
 
@@ -822,7 +837,7 @@
 }
 
 [data-theme="dark"] .clinical-hero-subtitle {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 [data-theme="dark"] .clinical-btn-secondary {
@@ -856,7 +871,7 @@
 }
 
 [data-theme="dark"] .hiw-step-desc {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 [data-theme="dark"] .hiw-connector {
@@ -872,7 +887,7 @@
 }
 
 [data-theme="dark"] .clinical-section-subtitle {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 [data-theme="dark"] .clinical-feature-card {

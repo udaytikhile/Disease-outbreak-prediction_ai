@@ -53,6 +53,15 @@
   background: radial-gradient(circle, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
 }
 
+/* ── Specific Backgrounds ── */
+.prediction-page.diabetes-bg {
+  background: linear-gradient(rgba(240, 249, 255, 0.7), rgba(248, 250, 252, 0.8)), url('../assets/diabetes.png') center/cover no-repeat fixed;
+}
+
+[data-theme="dark"] .prediction-page.diabetes-bg {
+  background: linear-gradient(rgba(12, 18, 34, 0.75), rgba(15, 23, 42, 0.85)), url('../assets/diabetes.png') center/cover no-repeat fixed;
+}
+
 /* ── Page Wrapper ── */
 .prediction-card-wrapper {
   max-width: 960px;
@@ -253,6 +262,10 @@
   box-shadow: 0 2px 8px rgba(13, 148, 136, 0.12);
 }
 
+.med-section-header:hover .med-section-icon {
+  animation: iconWiggle 0.4s ease;
+}
+
 [data-theme="dark"] .med-section-icon {
   background: linear-gradient(135deg, #042f2e, #0c4a6e);
   color: #5eead4;
@@ -384,7 +397,7 @@
 }
 
 [data-theme="dark"] .med-card-label-text {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .med-card-label-text .med-required {
@@ -415,7 +428,7 @@
 }
 
 .med-input-card input::placeholder {
-  color: #94a3b8;
+  color: #64748b;
   opacity: 0.6;
   font-weight: 400;
   font-size: 0.85rem;
@@ -535,6 +548,7 @@
   letter-spacing: 0.3px;
   position: relative;
   overflow: hidden;
+  animation: gradientShift 4s ease infinite;
 }
 
 .med-predict-btn::before {
@@ -646,7 +660,7 @@
 [data-theme="dark"] .prediction-back-btn {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(255, 255, 255, 0.07);
-  color: #94a3b8;
+  color: #64748b;
 }
 
 [data-theme="dark"] .prediction-back-btn:hover {
@@ -749,4 +763,3 @@
   font-size: 0.95rem;
   line-height: 1.5;
 }
-

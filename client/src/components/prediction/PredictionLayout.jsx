@@ -9,10 +9,10 @@
 import { useNavigate } from 'react-router-dom'
 import ResultCard from './ResultCard'
 
-const PredictionLayout = ({ children, title, error, result }) => {
+const PredictionLayout = ({ children, title, error, result, bgClass }) => {
     const nav = useNavigate()
     return (
-        <div className="prediction-page">
+        <div className={`prediction-page ${bgClass || ''}`}>
             <div className="prediction-card-wrapper">
                 <button className="prediction-back-btn" onClick={() => nav('/')} aria-label="Back to Home">
                     ← Back to Home

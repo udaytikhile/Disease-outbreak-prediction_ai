@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import config from '../../config'
 import BodyMap from './BodyMap'
 import { REGION_SYMPTOMS } from './constants'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const QUICK_SYMPTOMS = [
   'Chest Pain', 'Shortness of Breath', 'Fatigue', 'Frequent Urination',
@@ -337,20 +338,28 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
   return (
     <div className="symptom-chat-page">
       {/* ── HIPAA / AI Disclaimer Banner ── */}
-      {showDisclaimer && (
-        <div className="disclaimer-banner">
-          <div className="disclaimer-banner-content">
-            <span className="disclaimer-icon">⚕️</span>
-            <p>This AI tool is for <strong>informational purposes only</strong> — it does not provide medical advice, diagnosis, or treatment. No data is stored. Always consult a healthcare professional.</p>
-            <button className="disclaimer-close" onClick={() => setShowDisclaimer(false)}>✕</button>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showDisclaimer && (
+          <motion.div
+            className="disclaimer-banner"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="disclaimer-banner-content">
+              <span className="disclaimer-icon">⚕️</span>
+              <p>This AI tool is for <strong>informational purposes only</strong> — it does not provide medical advice, diagnosis, or treatment. No data is stored. Always consult a healthcare professional.</p>
+              <button className="disclaimer-close" onClick={() => setShowDisclaimer(false)} aria-label="Dismiss disclaimer">✕</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Header ── */}
       <div className="symptom-chat-header">
         <div className="symptom-chat-header-left">
-          <button className="symptom-back-btn" onClick={onClose}>←</button>
+          <button className="symptom-back-btn" onClick={onClose} aria-label="Back to Home">←</button>
           <div className="symptom-chat-avatar">
             <span>🤖</span>
             <span className="avatar-pulse"></span>
@@ -381,9 +390,10 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
             </div>
             <div className="demo-fields">
               <div className="demo-field">
-                <label>Age</label>
+                <label htmlFor="demo-age">Age</label>
                 <input
                   type="number"
+                  id="demo-age"
                   min="0" max="120"
                   placeholder="e.g. 35"
                   value={demographics.age}
@@ -391,20 +401,22 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                   className="demo-input"
                 />
               </div>
-              <div className="demo-field">
-                <label>Sex</label>
+              <fieldset className="demo-field">
+                <legend>Sex</legend>
                 <div className="demo-radio-group">
                   {['male', 'female', 'other'].map(s => (
                     <button
                       key={s}
                       className={`demo-radio-btn ${demographics.sex === s ? 'active' : ''}`}
                       onClick={() => setDemographics(d => ({ ...d, sex: s }))}
+                      role="radio"
+                      aria-checked={demographics.sex === s}
                     >
                       {s === 'male' ? '♂ Male' : s === 'female' ? '♀ Female' : '⚧ Other'}
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
             </div>
             <div className="demo-actions">
               <button className="demo-continue-btn" onClick={handleDemographicsSubmit}>
@@ -434,7 +446,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                         {severityMap[s] === 'severe' ? '!!!' : '!'}
                       </span>
                     )}
-                    <button className="tag-remove" onClick={() => removeSymptom(s)}>×</button>
+                    <button className="tag-remove" onClick={() => removeSymptom(s)} aria-label={`Remove ${s}`}>×</button>
                   </span>
                 ))}
               </div>
@@ -761,17 +773,37 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                     onKeyDown={handleKeyDown}
                     onFocus={() => inputValue.trim().length >= 2 && setShowAutocomplete(autocompleteResults.length > 0)}
                     disabled={isAnalyzing}
+                    aria-label="Describe your symptom"
+                    role="combobox"
+                    aria-expanded={showAutocomplete}
+                    aria-autocomplete="list"
+                    aria-controls="symptom-listbox"
+                    aria-activedescendant={activeIndex >= 0 ? `autocomplete-option-${activeIndex}` : undefined}
                   />
-                  {showAutocomplete && (
-                    <div className="autocomplete-dropdown">
-                      {autocompleteResults.map((r, i) => (
-                        <button key={i} type="button" className={`autocomplete-item ${i === activeIndex ? 'active' : ''}`}
-                          onClick={() => { addSymptom(r); setShowAutocomplete(false); setActiveIndex(-1) }}>
-                          <span className="autocomplete-match">🔍</span> {r}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {showAutocomplete && (
+                      <motion.div
+                        className="autocomplete-dropdown"
+                        role="listbox"
+                        id="symptom-listbox"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        {autocompleteResults.map((r, i) => (
+                          <button key={i} type="button" className={`autocomplete-item ${i === activeIndex ? 'active' : ''}`}
+                            onClick={() => { addSymptom(r); setShowAutocomplete(false); setActiveIndex(-1) }}
+                            role="option"
+                            id={`autocomplete-option-${i}`}
+                            aria-selected={i === activeIndex}
+                          >
+                            <span className="autocomplete-match" aria-hidden="true">🔍</span> {r}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 <button type="submit" className="symptom-send-btn"
                   disabled={!inputValue.trim() || isAnalyzing}>➕</button>

@@ -17,7 +17,7 @@ const LoadingAnalysis = ({ disease }) => {
     ]
 
     return (
-        <div className="ai-loading-overlay">
+        <div className="ai-loading-overlay" role="alert" aria-live="assertive" aria-busy="true">
             <div className="ai-loading-card">
                 {/* Animated rings */}
                 <div className="ai-loading-rings">

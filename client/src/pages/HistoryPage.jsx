@@ -1,14 +1,14 @@
 import { usePredictionHistory } from '../hooks/usePredictionHistory'
 
 const HistoryPage = ({ onClose }) => {
-  const { history, deletePrediction, clearHistory, getStatistics, exportAsCSV, exportAsJSON } = usePredictionHistory()
-  const stats = getStatistics()
+  const { history, deletePrediction, clearHistory, statistics, exportAsCSV, exportAsJSON } = usePredictionHistory()
+  const stats = statistics
 
   return (
     <div className="history-container">
       <div className="history-header">
         <div>
-          <h2 className="history-title">📊 Prediction History & Analytics</h2>
+          <h1 className="history-title"><span aria-hidden="true">📋</span> Prediction History & Analytics</h1>
           <p className="history-subtitle">View your past predictions and insights</p>
         </div>
         <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
@@ -95,8 +95,8 @@ const HistoryPage = ({ onClose }) => {
           </div>
         ) : (
           <div className="predictions-cards">
-            {history.map(prediction => (
-              <div key={prediction.id} className="prediction-card">
+            {history.map((prediction, index) => (
+              <div key={prediction.id} className="prediction-card" style={{ '--i': index }}>
                 <div className="prediction-header">
                   <div className="prediction-info">
                     <h4>{prediction.disease}</h4>

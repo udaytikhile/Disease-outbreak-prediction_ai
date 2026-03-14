@@ -51,7 +51,8 @@
   --success-color: #10b981;
   --danger-color: #ef4444;
   --text-dark: #1e1b4b;
-  --text-light: #4b5563; /* darkened for 7:1 WCAG AA contrast */
+  --text-light: #4b5563;
+  /* darkened for 7:1 WCAG AA contrast */
   --bg-light: #f5f3ff;
   --bg-white: #ffffff;
   --bg-page: #f8f7ff;
@@ -78,7 +79,9 @@
   --radius-full: 50px;
 
   --heading-font: 'Outfit', 'Inter', -apple-system, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  /* kept for backward compat; prefer targeted transitions + var(--ease) */
   --navbar-height: 72px;
 }
 
@@ -159,7 +162,7 @@ body {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  transition: var(--transition);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
   animation: fadeInUp 0.6s ease;
 }
 
@@ -200,7 +203,7 @@ body {
   padding: 2rem;
   text-align: center;
   cursor: pointer;
-  transition: var(--transition);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
   border: 3px solid transparent;
   box-shadow: var(--shadow-sm);
 }
@@ -262,7 +265,7 @@ body {
   border-radius: var(--radius-md);
   font-size: 1rem;
   font-family: inherit;
-  transition: var(--transition);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s var(--ease);
   background: var(--glass-bg);
   backdrop-filter: blur(8px);
 }
@@ -287,7 +290,7 @@ body {
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background-color 0.3s var(--ease), color 0.3s var(--ease);
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -337,7 +340,7 @@ body {
   margin-top: 2rem;
   padding: 2rem;
   border-radius: var(--radius-lg);
-  animation: slideInRight 0.5s ease;
+  animation: celebrationPop 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .result-card.success {
@@ -401,6 +404,7 @@ body {
   background: white;
   border-radius: var(--radius-full);
   transition: width 1s ease;
+  animation: countUp 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
 }
 
 /* SHAP Visualization */
@@ -412,6 +416,8 @@ body {
 
 .shap-item {
   margin-bottom: 0.75rem;
+  animation: cascadeIn 0.4s ease both;
+  animation-delay: calc(var(--i, 0) * 0.1s);
 }
 
 .shap-item:last-child {
@@ -428,12 +434,12 @@ body {
 
 /* Using hex colors that look crisp on both dark and light gradients */
 .shap-direction.risk {
-  color: #ff9999;
+  color: #dc2626;
   font-weight: 700;
 }
 
 .shap-direction.protective {
-  color: #99ff99;
+  color: #16a34a;
   font-weight: 700;
 }
 
@@ -606,3 +612,24 @@ body {
   padding: 2rem;
 }
 
+/* #8 Accessibility: Respect reduced motion preference (WCAG 2.1 Level AAA) */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Exempt functional spinners and progress indicators */
+  .ai-ring,
+  .report-spinner,
+  .analyze-spinner,
+  .med-progress-fill {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

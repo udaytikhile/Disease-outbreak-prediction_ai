@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 
 const STORAGE_KEY = 'prediction_history'
 const MAX_HISTORY = 100 // Store max 100 predictions
@@ -88,8 +88,8 @@ export const usePredictionHistory = () => {
     window.dispatchEvent(new Event(SYNC_EVENT))
   }, [])
 
-  // Get statistics
-  const getStatistics = useCallback(() => {
+  // Pre-computed statistics (referentially stable when history hasn't changed)
+  const statistics = useMemo(() => {
     const stats = {
       totalPredictions: history.length,
       byDisease: {},
@@ -101,21 +101,18 @@ export const usePredictionHistory = () => {
 
     let totalConfidence = 0
     let validConfidenceCount = 0
-    history.forEach(pred => {
-      // Count by disease
+    for (const pred of history) {
       stats.byDisease[pred.disease] = (stats.byDisease[pred.disease] || 0) + 1
 
-      // Count by risk level (safely handle missing/unexpected values)
       const riskKey = (pred.risk_level || '').toLowerCase()
       if (riskKey === 'high') stats.riskDistribution.high += 1
       else if (riskKey === 'low') stats.riskDistribution.low += 1
 
-      // Sum confidence (only count entries that have a valid value)
       if (pred.confidence != null) {
         totalConfidence += pred.confidence
         validConfidenceCount += 1
       }
-    })
+    }
 
     stats.avgConfidence = validConfidenceCount > 0 ? totalConfidence / validConfidenceCount : 0
 
@@ -158,7 +155,7 @@ export const usePredictionHistory = () => {
     const data = {
       exportDate: new Date().toISOString(),
       totalPredictions: history.length,
-      statistics: getStatistics(),
+      statistics,
       predictions: history.map(p => ({
         date: p.timestamp,
         disease: p.disease,
@@ -170,14 +167,14 @@ export const usePredictionHistory = () => {
     }
 
     downloadFile(JSON.stringify(data, null, 2), 'predictions.json', 'application/json')
-  }, [history, getStatistics])
+  }, [history, statistics])
 
   return {
     history,
     addPrediction,
     deletePrediction,
     clearHistory,
-    getStatistics,
+    statistics,
     exportAsCSV,
     exportAsJSON
   }

@@ -144,31 +144,35 @@ const HealthTips = ({ onClose }) => {
         <div className="tips-container">
             <div className="tips-header">
                 <div>
-                    <h2 className="tips-title">🏥 Health Information Center</h2>
+                    <h1 className="tips-title"><span aria-hidden="true">🏥</span> Health Information Center</h1>
                     <p className="tips-subtitle">Comprehensive medical information, prevention tips & dietary advice</p>
                 </div>
-                <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
+                <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }} aria-label="Back to Home">
                     ← Back to Home
                 </button>
             </div>
 
             {/* Disease Selector Pills */}
-            <div className="disease-pills">
+            <div className="disease-pills" role="tablist" aria-label="Disease categories">
                 {diseases.map((d, i) => (
                     <button
                         key={d.id}
                         className={`disease-pill ${activeDisease === i ? 'active' : ''}`}
                         onClick={() => { setActiveDisease(i); setActiveTab('overview') }}
                         style={{ '--pill-color': d.color }}
+                        role="tab"
+                        aria-selected={activeDisease === i}
+                        aria-controls={`disease-panel-${d.id}`}
+                        id={`disease-tab-${d.id}`}
                     >
-                        <span className="pill-icon">{d.icon}</span>
+                        <span className="pill-icon" aria-hidden="true">{d.icon}</span>
                         <span>{d.name}</span>
                     </button>
                 ))}
             </div>
 
             {/* Tab Navigation */}
-            <div className="tips-tabs">
+            <div className="tips-tabs" role="tablist" aria-label="Information tabs">
                 {[
                     { key: 'overview', label: '📖 Overview', },
                     { key: 'risks', label: '⚠️ Risk Factors' },
@@ -181,6 +185,10 @@ const HealthTips = ({ onClose }) => {
                         key={tab.key}
                         className={`tips-tab ${activeTab === tab.key ? 'active' : ''}`}
                         onClick={() => setActiveTab(tab.key)}
+                        role="tab"
+                        aria-selected={activeTab === tab.key}
+                        aria-controls={`tabpanel-${tab.key}`}
+                        id={`tab-${tab.key}`}
                     >
                         {tab.label}
                     </button>
@@ -190,7 +198,7 @@ const HealthTips = ({ onClose }) => {
             {/* Tab Content */}
             <div className="tips-content">
                 {activeTab === 'overview' && (
-                    <div className="tips-panel animate-in">
+                    <div className="tips-panel animate-in" role="tabpanel" id={`tabpanel-overview`} aria-labelledby="tab-overview">
                         <div className="overview-hero" style={{ '--accent': disease.color }}>
                             <span className="overview-icon">{disease.icon}</span>
                             <h3>{disease.name}</h3>
@@ -218,7 +226,7 @@ const HealthTips = ({ onClose }) => {
                 )}
 
                 {activeTab === 'risks' && (
-                    <div className="tips-panel animate-in">
+                    <div className="tips-panel animate-in" role="tabpanel" id={`tabpanel-risks`} aria-labelledby="tab-risks">
                         <h3>⚠️ Risk Factors for {disease.name}</h3>
                         <div className="risk-factors-grid">
                             {disease.riskFactors.map((rf, i) => (
@@ -245,7 +253,7 @@ const HealthTips = ({ onClose }) => {
                 )}
 
                 {activeTab === 'symptoms' && (
-                    <div className="tips-panel animate-in">
+                    <div className="tips-panel animate-in" role="tabpanel" id={`tabpanel-symptoms`} aria-labelledby="tab-symptoms">
                         <h3>🔍 Common Symptoms of {disease.name}</h3>
                         <div className="symptoms-list">
                             {disease.symptoms.map((symptom, i) => (
@@ -262,7 +270,7 @@ const HealthTips = ({ onClose }) => {
                 )}
 
                 {activeTab === 'prevention' && (
-                    <div className="tips-panel animate-in">
+                    <div className="tips-panel animate-in" role="tabpanel" id={`tabpanel-prevention`} aria-labelledby="tab-prevention">
                         <h3>🛡️ Prevention Tips for {disease.name}</h3>
                         <div className="prevention-list">
                             {disease.prevention.map((tip, i) => (
@@ -276,7 +284,7 @@ const HealthTips = ({ onClose }) => {
                 )}
 
                 {activeTab === 'diet' && (
-                    <div className="tips-panel animate-in">
+                    <div className="tips-panel animate-in" role="tabpanel" id={`tabpanel-diet`} aria-labelledby="tab-diet">
                         <h3>🥗 Dietary Recommendations for {disease.name}</h3>
                         <div className="diet-columns">
                             <div className="diet-column good">
@@ -300,7 +308,7 @@ const HealthTips = ({ onClose }) => {
                 )}
 
                 {activeTab === 'emergency' && (
-                    <div className="tips-panel animate-in">
+                    <div className="tips-panel animate-in" role="tabpanel" id={`tabpanel-emergency`} aria-labelledby="tab-emergency">
                         <h3>🚨 Emergency Warning Signs</h3>
                         <p className="emergency-intro">Seek immediate medical attention if you experience any of these:</p>
                         <div className="emergency-signs">

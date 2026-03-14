@@ -54,7 +54,7 @@ const ToastContainer = () => {
     }
 
     return (
-        <div className="toast-container" aria-live="polite" role="status">
+        <div className="toast-container" role="status">
             {toasts.map(toast => (
                 <div
                     key={toast.id}

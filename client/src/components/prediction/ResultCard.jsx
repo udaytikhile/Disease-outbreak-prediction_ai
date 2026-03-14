@@ -45,7 +45,7 @@ const ResultCard = ({ result }) => {
                         <h4 style={{ marginBottom: '0.75rem', fontSize: '1.05rem' }}>📊 What drove this result?</h4>
                         <div className="shap-bars">
                             {result.shap_contributions.map((item, idx) => (
-                                <div key={idx} className="shap-item">
+                                <div key={idx} className="shap-item" style={{ '--i': idx }}>
                                     <div className="shap-label">
                                         <span className="shap-feature">{item.feature}</span>
                                         <span className={`shap-direction ${item.direction}`}>

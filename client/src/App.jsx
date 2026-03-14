@@ -104,7 +104,7 @@ function AppRoutes() {
               } />
 
               <Route path="/predict/diabetes" element={
-                <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result}>
+                <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result} bgClass="diabetes-bg">
                   <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
                 </PredictionLayout>
               } />

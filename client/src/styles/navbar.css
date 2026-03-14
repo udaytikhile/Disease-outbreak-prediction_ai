@@ -22,6 +22,22 @@
   border-bottom-color: var(--border-color);
 }
 
+.navbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.navbar-scrolled::after {
+  opacity: 1;
+}
+
 .navbar-inner {
   max-width: 1200px;
   margin: 0 auto;
@@ -286,8 +302,10 @@
 
 /* Logo Styles - New */
 .navbar-logo-img {
-  height: 40px;
-  width: auto;
+  height: 36px;
+  width: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
   transition: transform 0.3s ease;
 }
 
@@ -309,4 +327,3 @@
   margin-bottom: 16px;
   opacity: 0.9;
 }
-

@@ -140,6 +140,12 @@
   color: white;
 }
 
+/* Stat icon variant backgrounds (replaces inline styles) */
+.dash-stat-icon--primary { background: linear-gradient(135deg, #6366f1, #7c3aed); }
+.dash-stat-icon--danger  { background: linear-gradient(135deg, #ef4444, #f87171); }
+.dash-stat-icon--success { background: linear-gradient(135deg, #22c55e, #4ade80); }
+.dash-stat-icon--warning { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
 .dash-stat-info {
   flex: 1;
 }

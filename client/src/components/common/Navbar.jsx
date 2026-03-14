@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import logo from '../../assets/logo-icon.png'
 import { useLocation, Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false)
@@ -26,6 +27,14 @@ const Navbar = () => {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden'
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') setIsOpen(false)
+            }
+            document.addEventListener('keydown', handleEscape)
+            return () => {
+                document.body.style.overflow = ''
+                document.removeEventListener('keydown', handleEscape)
+            }
         } else {
             document.body.style.overflow = ''
         }
@@ -52,23 +61,34 @@ const Navbar = () => {
             <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
                 <div className="navbar-inner">
                     <Link to="/" className="navbar-brand">
-                        <img src={logo} alt="Medixa AI" className="navbar-logo-img" style={{ height: '36px', width: '36px', objectFit: 'contain', flexShrink: 0 }} />
+                        <img src={logo} alt="Medixa AI" className="navbar-logo-img" />
                         <span className="navbar-title">Medixa AI</span>
                     </Link>
 
-                    <div className={`navbar-links ${isOpen ? 'open' : ''}`}>
-                        {navLinks.map(link => (
-                            <Link
-                                key={link.path}
-                                to={link.path}
-                                className={`navbar-link ${isActive(link.path) ? 'active' : ''}`}
-                                onClick={() => setIsOpen(false)}
+                    <AnimatePresence>
+                        {(isOpen || window.innerWidth > 768) && (
+                            <motion.div
+                                id="navbar-links"
+                                className={`navbar-links ${isOpen ? 'open' : ''}`}
+                                initial={isOpen ? { height: 0, opacity: 0 } : false}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
                             >
-                                <span className="navbar-link-icon">{link.icon}</span>
-                                <span className="navbar-link-label">{link.label}</span>
-                            </Link>
-                        ))}
-                    </div>
+                                {navLinks.map(link => (
+                                    <Link
+                                        key={link.path}
+                                        to={link.path}
+                                        className={`navbar-link ${isActive(link.path) ? 'active' : ''}`}
+                                        onClick={() => setIsOpen(false)}
+                                    >
+                                        <span className="navbar-link-icon">{link.icon}</span>
+                                        <span className="navbar-link-label">{link.label}</span>
+                                    </Link>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div className="navbar-actions">
                         <button
@@ -87,7 +107,9 @@ const Navbar = () => {
                         <button
                             className={`navbar-hamburger ${isOpen ? 'open' : ''}`}
                             onClick={() => setIsOpen(!isOpen)}
-                            aria-label="Toggle menu"
+                            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+                            aria-expanded={isOpen}
+                            aria-controls="navbar-links"
                         >
                             <span></span>
                             <span></span>
@@ -98,7 +120,7 @@ const Navbar = () => {
             </nav>
 
             {/* Mobile overlay */}
-            {isOpen && <div className="navbar-overlay" onClick={() => setIsOpen(false)} />}
+            {isOpen && <div className="navbar-overlay" role="presentation" onClick={() => setIsOpen(false)} />}
         </>
     )
 }

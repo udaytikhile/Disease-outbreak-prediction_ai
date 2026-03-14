@@ -1,57 +1,46 @@
 import { usePredictionHistory } from '../hooks/usePredictionHistory'
 import { useState, useMemo } from 'react'
+import { motion } from 'framer-motion'
 
 const Dashboard = ({ onClose }) => {
-    const { history, getStatistics, exportAsCSV, exportAsJSON } = usePredictionHistory()
-    const stats = useMemo(() => getStatistics(), [getStatistics])
+    const { history, statistics: stats, exportAsCSV, exportAsJSON } = usePredictionHistory()
     const [timeFilter, setTimeFilter] = useState('all')
     const [diseaseFilter, setDiseaseFilter] = useState('all')
 
     const diseaseOptions = Array.from(new Set(history.map(p => p.disease))).filter(Boolean)
 
-    const getFilteredHistory = () => {
+    // #1: Memoize time-filtered history
+    const timeFiltered = useMemo(() => {
         if (timeFilter === 'all') return history
-        const now = new Date()
-        const filters = {
-            'week': 7,
-            'month': 30,
-            '3months': 90
-        }
-        const days = filters[timeFilter]
-        return history.filter(p => {
-            const diff = (now - new Date(p.timestamp)) / (1000 * 60 * 60 * 24)
-            return diff <= days
-        })
-    }
+        const now = Date.now()
+        const days = { week: 7, month: 30, '3months': 90 }[timeFilter]
+        const cutoffMs = days * 86_400_000
+        return history.filter(p => now - new Date(p.timestamp).getTime() <= cutoffMs)
+    }, [history, timeFilter])
 
-    const timeFiltered = getFilteredHistory()
-    const filtered = diseaseFilter === 'all'
-        ? timeFiltered
-        : timeFiltered.filter(p => p.disease === diseaseFilter)
+    const filtered = useMemo(() =>
+        diseaseFilter === 'all'
+            ? timeFiltered
+            : timeFiltered.filter(p => p.disease === diseaseFilter)
+        , [timeFiltered, diseaseFilter])
 
-    // Calculate time-series data for the chart
-    const getChartData = () => {
-        if (filtered.length === 0) return []
-
+    // #2: Memoize chart data and maxTotal together
+    const { chartData, maxTotal } = useMemo(() => {
+        if (filtered.length === 0) return { chartData: [], maxTotal: 1 }
         const grouped = {}
         filtered.forEach(p => {
             const date = new Date(p.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            if (!grouped[date]) grouped[date] = { high: 0, low: 0, total: 0, avgConf: 0, confSum: 0 }
+            if (!grouped[date]) grouped[date] = { high: 0, low: 0, total: 0, confSum: 0 }
             grouped[date].total++
             if (p.risk_level === 'High') grouped[date].high++
             else grouped[date].low++
             if (p.confidence) grouped[date].confSum += p.confidence
         })
-
-        return Object.entries(grouped).map(([date, data]) => ({
-            date,
-            ...data,
-            avgConf: data.confSum / data.total
-        })).slice(-10) // Last 10 data points
-    }
-
-    const chartData = getChartData()
-    const maxTotal = Math.max(...chartData.map(d => d.total), 1)
+        const data = Object.entries(grouped)
+            .map(([date, d]) => ({ date, ...d, avgConf: d.confSum / d.total }))
+            .slice(-10)
+        return { chartData: data, maxTotal: Math.max(...data.map(d => d.total), 1) }
+    }, [filtered])
 
     // Calculate disease distribution for donut-style display
     const diseaseColors = {
@@ -92,7 +81,7 @@ const Dashboard = ({ onClose }) => {
         <div className="dashboard-container">
             <div className="dashboard-header">
                 <div>
-                    <h2 className="dashboard-title">📊 Health Analytics Dashboard</h2>
+                    <h2 className="dashboard-title"><span aria-hidden="true">📊</span> Health Analytics Dashboard</h2>
                     <p className="dashboard-subtitle">Visual insights from your prediction history</p>
                 </div>
                 <div className="dashboard-actions">
@@ -136,7 +125,7 @@ const Dashboard = ({ onClose }) => {
                     >
                         ⬇️ Export JSON
                     </button>
-                    <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }}>
+                    <button className="btn btn-secondary" onClick={onClose} style={{ width: 'auto' }} aria-label="Back to Home">
                         ← Back to Home
                     </button>
                 </div>
@@ -151,58 +140,76 @@ const Dashboard = ({ onClose }) => {
             ) : (
                 <>
                     {/* Summary Cards */}
-                    <div className="dashboard-stats">
-                        <div className="dash-stat-card">
-                            <div className="dash-stat-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #7c3aed)' }}>🧬</div>
+                    {/* #3: CSS modifier classes instead of inline styles */}
+                    <motion.div
+                        className="dashboard-stats"
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                        }}
+                    >
+                        <motion.div className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                            <div className="dash-stat-icon dash-stat-icon--primary" aria-hidden="true">🧬</div>
                             <div className="dash-stat-info">
                                 <div className="dash-stat-number">{totalFiltered}</div>
                                 <div className="dash-stat-label">Total Predictions</div>
                             </div>
-                        </div>
-                        <div className="dash-stat-card">
-                            <div className="dash-stat-icon" style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)' }}>⚠️</div>
+                        </motion.div>
+                        <motion.div className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                            <div className="dash-stat-icon dash-stat-icon--danger">⚠️</div>
                             <div className="dash-stat-info">
                                 <div className="dash-stat-number">{highRiskFiltered}</div>
                                 <div className="dash-stat-label">High Risk</div>
                             </div>
-                        </div>
-                        <div className="dash-stat-card">
-                            <div className="dash-stat-icon" style={{ background: 'linear-gradient(135deg, #22c55e, #4ade80)' }}>✅</div>
+                        </motion.div>
+                        <motion.div className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                            <div className="dash-stat-icon dash-stat-icon--success">✅</div>
                             <div className="dash-stat-info">
                                 <div className="dash-stat-number">{lowRiskFiltered}</div>
                                 <div className="dash-stat-label">Low Risk</div>
                             </div>
-                        </div>
-                        <div className="dash-stat-card">
-                            <div className="dash-stat-icon" style={{ background: 'linear-gradient(135deg, #f59e0b, #fbbf24)' }}>🎯</div>
+                        </motion.div>
+                        <motion.div className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                            <div className="dash-stat-icon dash-stat-icon--warning">🎯</div>
                             <div className="dash-stat-info">
                                 <div className="dash-stat-number">{avgConfFiltered.toFixed(1)}%</div>
                                 <div className="dash-stat-label">Avg Confidence</div>
                             </div>
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
 
                     {/* Charts Row */}
-                    <div className="dashboard-charts-row">
+                    <motion.div
+                        className="dashboard-charts-row"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
                         {/* Bar Chart */}
                         <div className="dashboard-chart-card">
                             <h3>📊 Prediction Activity</h3>
                             {chartData.length > 0 ? (
-                                <div className="bar-chart">
+                                <div className="bar-chart" role="img" aria-label={`Bar chart showing prediction activity: ${chartData.map(d => `${d.date}: ${d.high} high risk, ${d.low} low risk`).join('; ')}`}>
                                     <div className="bar-chart-bars">
                                         {chartData.map((d, i) => (
                                             <div key={i} className="bar-group">
                                                 <div className="bar-wrapper">
-                                                    <div
+                                                    <motion.div
                                                         className="bar bar-high"
-                                                        style={{ height: `${(d.high / maxTotal) * 100}%` }}
+                                                        initial={{ height: 0 }}
+                                                        animate={{ height: `${(d.high / maxTotal) * 100}%` }}
+                                                        transition={{ duration: 0.8, delay: i * 0.05 + 0.3 }}
                                                         title={`${d.high} high risk`}
-                                                    ></div>
-                                                    <div
+                                                    ></motion.div>
+                                                    <motion.div
                                                         className="bar bar-low"
-                                                        style={{ height: `${(d.low / maxTotal) * 100}%` }}
+                                                        initial={{ height: 0 }}
+                                                        animate={{ height: `${(d.low / maxTotal) * 100}%` }}
+                                                        transition={{ duration: 0.8, delay: i * 0.05 + 0.3 }}
                                                         title={`${d.low} low risk`}
-                                                    ></div>
+                                                    ></motion.div>
                                                 </div>
                                                 <span className="bar-label">{d.date}</span>
                                             </div>
@@ -227,24 +234,32 @@ const Dashboard = ({ onClose }) => {
                                         {Object.entries(stats.byDisease).map(([disease, count], i) => {
                                             const pct = ((count / totalFiltered) * 100).toFixed(0)
                                             return (
-                                                <div key={disease} className="distribution-item" style={{ animationDelay: `${i * 0.15}s` }}>
+                                                <motion.div
+                                                    key={disease}
+                                                    className="distribution-item"
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: i * 0.15 + 0.3 }}
+                                                >
                                                     <div className="distribution-bar-container">
                                                         <div className="distribution-header">
                                                             <span className="distribution-name">{disease}</span>
                                                             <span className="distribution-pct">{pct}%</span>
                                                         </div>
                                                         <div className="distribution-bar-bg">
-                                                            <div
+                                                            <motion.div
                                                                 className="distribution-bar-fill"
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${pct}%` }}
+                                                                transition={{ duration: 1, ease: 'easeOut', delay: i * 0.15 + 0.5 }}
                                                                 style={{
-                                                                    width: `${pct}%`,
                                                                     background: diseaseColors[disease] || '#6366f1'
                                                                 }}
-                                                            ></div>
+                                                            ></motion.div>
                                                         </div>
                                                         <span className="distribution-count">{count} prediction{count !== 1 ? 's' : ''}</span>
                                                     </div>
-                                                </div>
+                                                </motion.div>
                                             )
                                         })}
                                     </div>
@@ -253,7 +268,7 @@ const Dashboard = ({ onClose }) => {
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Trend & Insights */}
                     <div className="dashboard-insights">
