@@ -3,6 +3,19 @@ import { getCheckerMode, chatSymptomChecker, endChatSession } from '../../api/sy
 import ReactMarkdown from 'react-markdown'
 import '../../styles/symptom-checker-chat.css'
 
+const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+
+function sanitizeHref(href) {
+    if (!href || typeof href !== 'string') return null
+    try {
+        const url = new URL(href, window.location.origin)
+        if (!SAFE_PROTOCOLS.has(url.protocol)) return null
+        return url.toString()
+    } catch {
+        return null
+    }
+}
+
 /**
  * LLM-powered conversational symptom checker chat UI.
  * Falls back to rule-based mode when LLM is unavailable.
@@ -131,6 +144,11 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                 </button>
             </div>
 
+            <div className="chat-disclaimer-banner" role="note" aria-label="Medical disclaimer">
+                ⚕️ This is for informational screening only — not medical advice or a diagnosis.
+                If you have severe symptoms or an emergency, call your local emergency number immediately.
+            </div>
+
             {/* Messages */}
             <div className="chat-messages" role="log" aria-live="polite">
                 {messages.map((msg, idx) => (
@@ -143,7 +161,27 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                         )}
                         <div className="chat-bubble-content">
                             {msg.role === 'assistant' ? (
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                <ReactMarkdown
+                                    components={{
+                                        a: ({ href, children, ...props }) => {
+                                            const safe = sanitizeHref(href)
+                                            if (!safe) return <span {...props}>{children}</span>
+                                            const external = safe.startsWith('http')
+                                            return (
+                                                <a
+                                                    href={safe}
+                                                    target={external ? '_blank' : undefined}
+                                                    rel={external ? 'noreferrer noopener' : undefined}
+                                                    {...props}
+                                                >
+                                                    {children}
+                                                </a>
+                                            )
+                                        },
+                                    }}
+                                >
+                                    {msg.content}
+                                </ReactMarkdown>
                             ) : (
                                 <p>{msg.content}</p>
                             )}
@@ -166,6 +204,12 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                                             {s}
                                         </button>
                                     ))}
+                                </div>
+                            )}
+
+                            {msg.role === 'assistant' && (
+                                <div className="chat-message-disclaimer">
+                                    Not medical advice. For emergencies, call your local emergency number.
                                 </div>
                             )}
                         </div>

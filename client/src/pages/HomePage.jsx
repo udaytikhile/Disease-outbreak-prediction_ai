@@ -18,7 +18,7 @@ const HomePage = ({ onSelectDisease, onViewChecker }) => {
             color: '#ef4444',
             params: '13',
             accuracy: '85%',
-            patients: '10K+',
+            patients: '1K+',
         },
         {
             id: 'diabetes',

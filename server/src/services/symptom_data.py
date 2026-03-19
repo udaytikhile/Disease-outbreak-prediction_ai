@@ -110,6 +110,13 @@ SYNONYM_MAP = {
     "hypertension": "high blood pressure", "infections often": "frequent infections",
     "yeast infection": "yeast infections", "irritable": "irritability",
     "stressed": "stress", "restless": "restlessness", "agitated": "restlessness",
+
+    # Stroke / speech changes
+    "slurred speech": "speech changes",
+    "trouble speaking": "speech changes",
+    "speech difficulty": "speech changes",
+    "can't speak": "speech changes",
+    "cant speak": "speech changes",
 }
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,29 @@
+# Render Blueprint — Medixa AI Backend (Flask API)
+# Deploy: Connect this repo in Render Dashboard, or use "New > Blueprint"
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: medixa-api
+    runtime: python
+
+    # Monorepo: build and run from repo root (server + ml/ needed)
+    rootDir: /
+
+    buildCommand: pip install -r server/requirements.txt
+
+    startCommand: cd server && gunicorn wsgi:app -w 2 -b 0.0.0.0:$PORT --timeout 120
+
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+        # Set in Render Dashboard: https://your-vercel-app.vercel.app
+      - key: GEMINI_API_KEY
+        sync: false
+        # Optional: add in Render Dashboard for symptom checker

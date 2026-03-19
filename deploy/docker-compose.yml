@@ -17,6 +17,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-jwt-secret-in-production}
       - DATABASE_URL=postgresql://outbreak:outbreak@db:5432/outbreak_db
       - REDIS_URL=redis://redis:6379/0
+      - RATELIMIT_STORAGE_URI=redis://redis:6379/0
       - CORS_ORIGINS=http://localhost,http://localhost:80
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:

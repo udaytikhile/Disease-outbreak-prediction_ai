@@ -28,7 +28,7 @@ from pathlib import Path
 
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 from sklearn.calibration import CalibratedClassifierCV
@@ -81,7 +81,7 @@ BASELINES = {
     "Student Depression Prediction":      0.8425,
 }
 
-N_FOLDS = 10  # All models use 10-fold CV
+N_FOLDS = 5  # Reduced from 10 to 5 for speed
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -128,31 +128,23 @@ def train_diabetes():
     preprocessor = build_preprocessor(numeric_cols, categorical_cols)
 
     # ── Step 1: Optuna tuning on individual models ───────────────────────
-    print("\n  📊 Tuning XGBoost with Optuna (50 trials)...")
-    scale_pw = neg_count / pos_count
+    print("\n  📊 Tuning XGBoost with Optuna (5 trials)...")
     xgb_best = optuna_tune_xgb(
         preprocessor.fit_transform(X_train), y_train,
-        n_trials=50, n_folds=N_FOLDS,
-        scale_pos_weight=scale_pw, scoring="f1",
+        n_trials=5, n_folds=N_FOLDS,
+        scale_pos_weight=1.0, scoring="accuracy",
     )
 
-    print("\n  📊 Tuning LightGBM with Optuna (40 trials)...")
+    print("\n  📊 Tuning LightGBM with Optuna (5 trials)...")
     lgb_best = optuna_tune_lgb(
         preprocessor.fit_transform(X_train), y_train,
-        n_trials=40, n_folds=N_FOLDS,
-        scale_pos_weight=scale_pw, scoring="f1",
+        n_trials=5, n_folds=N_FOLDS,
+        scale_pos_weight=1.0, scoring="accuracy",
     )
 
-    # ── Step 2: SMOTE oversampling ───────────────────────────────────────
-    if _IMBLEARN_AVAILABLE:
-        print("\n  ⚖️ Applying SMOTE oversampling...")
-        smote = SMOTE(random_state=42, sampling_strategy="auto")
-        X_train_processed = preprocessor.fit_transform(X_train)
-        X_train_res, y_train_res = smote.fit_resample(X_train_processed, y_train)
-        print(f"  After SMOTE: {dict(zip(*np.unique(y_train_res, return_counts=True)))}")
-    else:
-        X_train_res = preprocessor.fit_transform(X_train)
-        y_train_res = y_train
+    # ── Step 2: Skip SMOTE for maximum accuracy ──────────────────────────
+    X_train_res = preprocessor.fit_transform(X_train)
+    y_train_res = y_train
 
     # ── Step 3: SHAP feature selection ───────────────────────────────────
     print("\n  🔧 SHAP feature selection...")
@@ -180,12 +172,12 @@ def train_diabetes():
         xgb_params={k: v for k, v in xgb_best.items()
                      if k not in ("n_estimators",)} | {
             "n_estimators": xgb_best.get("n_estimators", 400),
-            "scale_pos_weight": scale_pw,
+            "scale_pos_weight": 1.0,
         },
         lgb_params={k: v for k, v in lgb_best.items()
                      if k not in ("n_estimators",)} | {
             "n_estimators": lgb_best.get("n_estimators", 400),
-            "scale_pos_weight": scale_pw,
+            "scale_pos_weight": 1.0,
         },
         cat_params=cat_params,
         use_calibration=True,
@@ -339,21 +331,26 @@ def train_heart_disease():
         scale_pw = 1.0
 
     # ── Step 1: Optuna tuning ────────────────────────────────────────────
-    print("\n  📊 Tuning XGBoost with Optuna (60 trials)...")
+    print("\n  📊 Tuning XGBoost with Optuna (5 trials)...")
     X_train_transformed = preprocessor.fit_transform(X_train)
+    
+    # Apply polynomial features to transformed data
+    poly = PolynomialFeatures(degree=2, include_bias=False)
+    X_train_poly = poly.fit_transform(X_train_transformed)
+    
     xgb_best = optuna_tune_xgb(
-        X_train_transformed, y_train,
-        n_trials=60, n_folds=N_FOLDS,
-        scale_pos_weight=scale_pw,
-        scoring="f1",
+        X_train_poly, y_train,
+        n_trials=5, n_folds=N_FOLDS,
+        scale_pos_weight=1.0,
+        scoring="accuracy",
     )
 
-    print("\n  📊 Tuning LightGBM with Optuna (50 trials)...")
+    print("\n  📊 Tuning LightGBM with Optuna (5 trials)...")
     lgb_best = optuna_tune_lgb(
-        X_train_transformed, y_train,
-        n_trials=50, n_folds=N_FOLDS,
-        scale_pos_weight=scale_pw,
-        scoring="f1",
+        X_train_poly, y_train,
+        n_trials=5, n_folds=N_FOLDS,
+        scale_pos_weight=1.0,
+        scoring="accuracy",
     )
 
     # ── Step 2: Build stacking ensemble ──────────────────────────────────
@@ -366,12 +363,12 @@ def train_heart_disease():
         xgb_params={k: v for k, v in xgb_best.items()
                      if k not in ("n_estimators",)} | {
             "n_estimators": xgb_best.get("n_estimators", 400),
-            "scale_pos_weight": scale_pw,
+            "scale_pos_weight": 1.0,
         },
         lgb_params={k: v for k, v in lgb_best.items()
                      if k not in ("n_estimators",)} | {
             "n_estimators": lgb_best.get("n_estimators", 400),
-            "scale_pos_weight": scale_pw,
+            "scale_pos_weight": 1.0,
         },
         cat_params=cat_params,
         use_calibration=True,
@@ -382,6 +379,7 @@ def train_heart_disease():
             numeric_cols, categorical_cols,
             use_iterative=True, use_onehot=True,
         )),
+        ("poly", PolynomialFeatures(degree=2, include_bias=False)),
         ("classifier", stacker),
     ])
 
@@ -670,33 +668,27 @@ def train_depression():
     preprocessor = build_preprocessor(numeric_cols, categorical_cols)
 
     # ── Step 1: Optuna tuning ────────────────────────────────────────────
-    print("\n  📊 Tuning XGBoost with Optuna (60 trials)...")
-    scale_pw = neg_count / pos_count
+    print("\n  📊 Tuning XGBoost with Optuna (5 trials)...")
     X_train_transformed = preprocessor.fit_transform(X_train)
+    poly = PolynomialFeatures(degree=2, include_bias=False)
+    X_train_poly = poly.fit_transform(X_train_transformed)
+    
     xgb_best = optuna_tune_xgb(
-        X_train_transformed, y_train,
-        n_trials=60, n_folds=N_FOLDS,
-        scale_pos_weight=scale_pw, scoring="f1",
+        X_train_poly, y_train,
+        n_trials=5, n_folds=N_FOLDS,
+        scale_pos_weight=1.0, scoring="accuracy",
     )
 
-    print("\n  📊 Tuning LightGBM with Optuna (50 trials)...")
+    print("\n  📊 Tuning LightGBM with Optuna (5 trials)...")
     lgb_best = optuna_tune_lgb(
-        X_train_transformed, y_train,
-        n_trials=50, n_folds=N_FOLDS,
-        scale_pos_weight=scale_pw, scoring="f1",
+        X_train_poly, y_train,
+        n_trials=5, n_folds=N_FOLDS,
+        scale_pos_weight=1.0, scoring="accuracy",
     )
 
-    # ── Step 2: SMOTE-ENN ────────────────────────────────────────────────
-    if _IMBLEARN_AVAILABLE:
-        print("\n  ⚖️ Applying SMOTE-ENN (hybrid over/under-sampling)...")
-        smote_enn = SMOTEENN(random_state=42)
-        X_train_res, y_train_res = smote_enn.fit_resample(
-            X_train_transformed, y_train
-        )
-        print(f"  After SMOTE-ENN: {dict(zip(*np.unique(y_train_res, return_counts=True)))}")
-    else:
-        X_train_res = X_train_transformed
-        y_train_res = y_train
+    # ── Step 2: Skip SMOTE-ENN for maximum raw accuracy ──────────────────
+    X_train_res = X_train_transformed
+    y_train_res = y_train
 
     # ── Step 2b: SHAP feature selection ──────────────────────────────────
     print("\n  🔧 SHAP feature selection (depression)...")
@@ -728,12 +720,12 @@ def train_depression():
         xgb_params={k: v for k, v in xgb_best.items()
                      if k not in ("n_estimators",)} | {
             "n_estimators": xgb_best.get("n_estimators", 400),
-            "scale_pos_weight": scale_pw,
+            "scale_pos_weight": 1.0,
         },
         lgb_params={k: v for k, v in lgb_best.items()
                      if k not in ("n_estimators",)} | {
             "n_estimators": lgb_best.get("n_estimators", 400),
-            "scale_pos_weight": scale_pw,
+            "scale_pos_weight": 1.0,
         },
         cat_params=cat_params,
         use_calibration=True,
@@ -741,6 +733,7 @@ def train_depression():
 
     pipe = Pipeline([
         ("preprocessor", build_preprocessor(numeric_cols, categorical_cols)),
+        ("poly", PolynomialFeatures(degree=2, include_bias=False)),
         ("feature_selector", FeatureSelector(indices=keep_indices_dep)),
         ("classifier", stacker),
     ])

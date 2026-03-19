@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+.env
+*.db
+
+# Node
+client/node_modules
+client/dist
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+
+# Docker
+.docker-data
+
+# Tests
+.pytest_cache
+htmlcov
+.coverage
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs (not needed in runtime)
+docs/
+*.md

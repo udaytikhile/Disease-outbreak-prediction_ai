@@ -58,7 +58,7 @@ cd server
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
-python run.py  # Typically runs on http://localhost:5001
+python app.py  # Typically runs on http://localhost:5001
 ```
 
 ### 3. Setup the Frontend (React App)
@@ -69,6 +69,38 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:5173`.
+
+### 4. Quick Start (Optional)
+
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+Starts both backend and frontend in one command (after initial setup).
+
+---
+
+## 🚀 Production Deployment
+
+### Vercel (Frontend) + Render (Backend)
+
+1. Push to GitHub, then deploy `/client` to [Vercel](https://vercel.com) (root: `client`, output: `dist`).
+2. Deploy `/server` to [Render](https://render.com) (start: `cd server && gunicorn wsgi:app -w 2 -b 0.0.0.0:$PORT --timeout 120`).
+3. Set `VITE_API_URL` on Vercel to your Render API URL (e.g. `https://your-app.onrender.com/api`).
+4. Set `SECRET_KEY`, `CORS_ORIGINS`, and `GEMINI_API_KEY` on Render.
+
+Full steps → [DEPLOY.md](DEPLOY.md).
+
+### Docker Compose (Alternative)
+
+```bash
+cp deploy/.env.example .env
+# Edit .env — set SECRET_KEY, JWT_SECRET_KEY, GEMINI_API_KEY
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+Access at http://localhost. See [DEPLOY.md](DEPLOY.md) for details.
 
 ---
 
@@ -95,6 +127,11 @@ Disease-outbreak-prediction_ai/
 │   ├── routes/                 # API endpoint handlers
 │   └── ...
 │
+├── deploy/                     # Docker, nginx, production config
+│   ├── docker-compose.yml
+│   ├── Dockerfile.client
+│   ├── Dockerfile.server
+│   └── nginx.conf
 └── run.sh                      # Helper script to launch the full stack
 ```
 

@@ -17,7 +17,13 @@ const LoadingAnalysis = ({ disease }) => {
     ]
 
     return (
-        <div className="ai-loading-overlay" role="alert" aria-live="assertive" aria-busy="true">
+        <div
+            className="ai-loading-overlay"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+            aria-label={`Loading ${info.name} analysis`}
+        >
             <div className="ai-loading-card">
                 {/* Animated rings */}
                 <div className="ai-loading-rings">
@@ -61,6 +67,7 @@ const LoadingAnalysis = ({ disease }) => {
                 </div>
 
                 <p className="ai-loading-note">This usually takes 1-2 seconds</p>
+                <span className="sr-only">Loading. Please wait.</span>
             </div>
         </div>
     )

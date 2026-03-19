@@ -15,6 +15,7 @@ import json
 import numpy as np
 import pandas as pd
 import logging
+import concurrent.futures
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -332,7 +333,7 @@ class ModelService:
         if explainer is None or pipeline is None:
             return []
 
-        try:
+        def _compute():
             preprocessor = pipeline.named_steps.get('preprocessor')
             if preprocessor is None:
                 return []
@@ -390,6 +391,14 @@ class ModelService:
                 })
 
             return contributions
+        try:
+            # SHAP can be expensive; enforce a short timeout so requests don't hang.
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                fut = ex.submit(_compute)
+                return fut.result(timeout=5)
+        except concurrent.futures.TimeoutError:
+            logger.warning("SHAP computation timed out for %s", disease_type)
+            return []
         except Exception as e:
             logger.warning(f"SHAP computation failed for {disease_type}: {e}")
             return []

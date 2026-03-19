@@ -4,6 +4,7 @@ import { useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const Navbar = () => {
+    const MotionDiv = motion.div
     const [isOpen, setIsOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const [isDark, setIsDark] = useState(() => {
@@ -52,6 +53,8 @@ const Navbar = () => {
         { path: '/tips', label: 'Health Info', icon: '🏥' },
         { path: '/checker', label: 'Symptom Check', icon: '🔍' },
         { path: '/profile', label: 'Profile', icon: '👤' },
+        { path: '/privacy', label: 'Privacy', icon: '🔒' },
+        { path: '/terms', label: 'Terms', icon: '📜' },
     ]
 
     const isActive = (path) => location.pathname === path
@@ -67,7 +70,7 @@ const Navbar = () => {
 
                     <AnimatePresence>
                         {(isOpen || window.innerWidth > 768) && (
-                            <motion.div
+                            <MotionDiv
                                 id="navbar-links"
                                 className={`navbar-links ${isOpen ? 'open' : ''}`}
                                 initial={isOpen ? { height: 0, opacity: 0 } : false}
@@ -86,7 +89,7 @@ const Navbar = () => {
                                         <span className="navbar-link-label">{link.label}</span>
                                     </Link>
                                 ))}
-                            </motion.div>
+                            </MotionDiv>
                         )}
                     </AnimatePresence>
 

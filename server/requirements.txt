@@ -1,4 +1,5 @@
 # Backend Application Dependencies
+python-dotenv>=1.0.0
 Flask>=3.0.0
 flask-cors>=4.0.0
 flask-limiter>=3.0.0
@@ -18,6 +19,9 @@ matplotlib>=3.7.0
 
 # LLM Integration
 google-generativeai>=0.8.0
+
+# Error monitoring
+sentry-sdk[flask]>=2.0.0
 
 # Security
 # bcrypt>=4.0.0  # Not yet used — uncomment when auth is implemented

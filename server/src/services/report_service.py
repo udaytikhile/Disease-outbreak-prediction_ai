@@ -7,6 +7,7 @@ using ReportLab for layout and Matplotlib for charts.
 import io
 import logging
 from datetime import datetime, timezone
+from xml.sax.saxutils import escape
 
 from ..constants import DISEASES, RISK_LEVELS
 
@@ -198,7 +199,8 @@ def generate_pdf_report(prediction_data):
 
     # ── Recommendations ─────────────────────────────────────────────────────
     elements.append(Paragraph('Medical Recommendations', heading_style))
-    elements.append(Paragraph(advice, body_style))
+    # ReportLab Paragraph parses markup; escape untrusted strings defensively.
+    elements.append(Paragraph(escape(str(advice)), body_style))
 
     # ── Disclaimer ──────────────────────────────────────────────────────────
     elements.append(Paragraph(

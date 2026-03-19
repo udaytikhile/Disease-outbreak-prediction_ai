@@ -25,6 +25,7 @@ class Config:
 
     # LLM
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+    ENABLE_METRICS_ENDPOINT = os.getenv('ENABLE_METRICS_ENDPOINT', '0').strip() in ('1', 'true', 'True')
 
 
 class DevelopmentConfig(Config):

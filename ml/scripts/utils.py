@@ -200,8 +200,8 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
 # Optuna Hyperparameter Tuning
 # ══════════════════════════════════════════════════════════════════════════════
 
-def optuna_tune_xgb(X_train, y_train, n_trials=100, n_folds=10,
-                    scale_pos_weight=1.0, scoring="f1"):
+def optuna_tune_xgb(X_train, y_train, n_trials=15, n_folds=5,
+                    scale_pos_weight=1.0, scoring="accuracy"):
     """Use Optuna to find best XGBoost hyperparameters.
 
     Returns:
@@ -248,8 +248,8 @@ def optuna_tune_xgb(X_train, y_train, n_trials=100, n_folds=10,
     return study.best_params
 
 
-def optuna_tune_lgb(X_train, y_train, n_trials=80, n_folds=10,
-                    scale_pos_weight=1.0, scoring="f1"):
+def optuna_tune_lgb(X_train, y_train, n_trials=15, n_folds=5,
+                    scale_pos_weight=1.0, scoring="accuracy"):
     """Use Optuna to find best LightGBM hyperparameters."""
     if not _OPTUNA_AVAILABLE:
         return {}
@@ -293,7 +293,7 @@ def optuna_tune_lgb(X_train, y_train, n_trials=80, n_folds=10,
 # ══════════════════════════════════════════════════════════════════════════════
 
 def find_best_threshold(pipe, X_val, y_val, positive_label=1):
-    """Sweep thresholds using ROC curve to maximise F1 for positive class.
+    """Sweep thresholds using ROC curve to maximise Accuracy for positive class.
 
     Uses ROC-curve interpolated thresholds for efficiency (vs brute-force).
     Falls back to brute-force sweep if ROC approach fails.
@@ -304,7 +304,7 @@ def find_best_threshold(pipe, X_val, y_val, positive_label=1):
         print("  ⚠️  predict_proba not available; using threshold = 0.50")
         return 0.5
 
-    best_t, best_f1 = 0.5, 0.0
+    best_t, best_score = 0.5, 0.0
 
     # Use ROC thresholds for more efficient search
     try:
@@ -318,9 +318,9 @@ def find_best_threshold(pipe, X_val, y_val, positive_label=1):
                 compare_y = (y_val == positive_label).astype(int)
             else:
                 compare_y = y_val
-            score = f1_score(compare_y, preds, zero_division=0)
-            if score > best_f1:
-                best_f1, best_t = score, round(float(t), 4)
+            score = accuracy_score(compare_y, preds)
+            if score > best_score:
+                best_score, best_t = score, round(float(t), 4)
     except Exception:
         # Fallback to brute force
         for t in np.arange(0.05, 0.96, 0.01):
@@ -330,11 +330,11 @@ def find_best_threshold(pipe, X_val, y_val, positive_label=1):
                 compare_y = (y_val == positive_label).astype(int)
             else:
                 compare_y = y_val
-            score = f1_score(compare_y, preds, zero_division=0)
-            if score > best_f1:
-                best_f1, best_t = score, round(float(t), 4)
+            score = accuracy_score(compare_y, preds)
+            if score > best_score:
+                best_score, best_t = score, round(float(t), 4)
 
-    print(f"  🎯 Best threshold   : {best_t:.4f}  (F1={best_f1:.4f})")
+    print(f"  🎯 Best threshold   : {best_t:.4f}  (Accuracy={best_score:.4f})")
     return best_t
 
 

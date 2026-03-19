@@ -15,6 +15,26 @@ def create_app(config_name='default'):
     # Load config
     app.config.from_object(config[config_name])
 
+    # Error monitoring (optional): set SENTRY_DSN to enable
+    try:
+        import os
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+
+        dsn = os.getenv("SENTRY_DSN", "").strip()
+        if dsn:
+            sentry_sdk.init(
+                dsn=dsn,
+                integrations=[FlaskIntegration()],
+                traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0") or 0),
+                send_default_pii=False,
+                environment=os.getenv("SENTRY_ENVIRONMENT", config_name),
+                release=os.getenv("SENTRY_RELEASE", None),
+            )
+            logger.info("✅ Sentry enabled for error monitoring")
+    except Exception as e:
+        logger.warning("Sentry not enabled: %s", e)
+
     # Initialize extensions
     # Bug 1 fix: CORS_ORIGINS comes from config — never hard-coded or wildcard
     cors.init_app(app, origins=app.config['CORS_ORIGINS'])

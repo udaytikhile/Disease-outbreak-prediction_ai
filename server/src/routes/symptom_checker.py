@@ -19,11 +19,44 @@ from ..services.symptom_service import (
     collect_followup_questions,
 )
 from ..services.symptom_data import (
+    SYNONYM_MAP,
+    RED_FLAG_RULES,
     SYMPTOM_SUGGESTIONS,
     DISCLAIMER_TEXT,
 )
 
 symptom_checker_bp = Blueprint('symptom_checker', __name__)
+
+def _precheck_emergency_from_free_text(message: str):
+    """Best-effort emergency detection for LLM chat inputs.
+
+    We avoid calling the LLM when the user input already matches a red-flag
+    pattern. This is intentionally conservative: false positives are safer
+    than missing an emergency.
+    """
+    if not message:
+        return []
+
+    lower = str(message).lower()
+    canonical = set()
+
+    # Capture any known synonym phrases present in free text
+    for phrase, canon in SYNONYM_MAP.items():
+        if phrase in lower:
+            canonical.add(canon)
+
+    # Also capture direct mentions of required/supporting terms from rules
+    for rule in RED_FLAG_RULES:
+        for term in (rule.get("required", []) + rule.get("supporting", [])):
+            if term and term in lower:
+                canonical.add(term)
+
+    if not canonical:
+        return []
+
+    # Normalize via expand_synonyms for consistency
+    canonical_expanded = [expand_synonyms(s) for s in canonical]
+    return check_red_flags(canonical_expanded)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -222,6 +255,27 @@ def chat_symptom_checker():
         return jsonify({'success': False, 'error': 'Message too long (max 2000 chars)'}), 400
 
     session_id = data.get('session_id')
+
+    # Emergency pre-check: short-circuit before calling LLM
+    emergency_alerts = _precheck_emergency_from_free_text(message)
+    if emergency_alerts:
+        return jsonify({
+            'success': True,
+            'chat': {
+                'response': (
+                    "🚨 **Emergency indicators detected.** Please seek immediate medical attention.\n\n"
+                    + "\n".join([f"- **{a['name']}**: {a['message']}" for a in emergency_alerts])
+                ),
+                'is_emergency': True,
+                'suggestions': [
+                    "Call emergency services now",
+                    "I need crisis resources",
+                    "What should I do while waiting for help?",
+                ],
+                'session_id': session_id,
+                'mode': 'precheck-emergency',
+            },
+        })
 
     from ..services.llm_service import chat, create_session
 

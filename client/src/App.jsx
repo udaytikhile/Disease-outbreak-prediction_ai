@@ -32,6 +32,8 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const UserProfile = lazy(() => import('./pages/UserProfilePage'))
 const HealthTips = lazy(() => import('./pages/HealthTipsPage'))
+const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 
 const HistoryPage = lazy(() => import('./pages/HistoryPage'))
 const Dashboard = lazy(() => import('./pages/DashboardPage'))
@@ -126,6 +128,8 @@ function AppRoutes() {
               <Route path="/profile" element={<UserProfile onClose={() => navigate('/')} />} />
               <Route path="/tips" element={<HealthTips onClose={() => navigate('/')} />} />
               <Route path="/dashboard" element={<Dashboard onClose={() => navigate('/')} />} />
+              <Route path="/terms" element={<TermsOfUsePage onClose={() => navigate(-1)} />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage onClose={() => navigate(-1)} />} />
               <Route path="/checker" element={
                 <SymptomChecker
                   onClose={() => navigate('/')}

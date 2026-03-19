@@ -6,6 +6,7 @@ to the existing rule-based symptom checker when no API key is configured.
 """
 import logging
 import os
+import re
 import time
 import uuid
 
@@ -25,6 +26,7 @@ except ImportError:
 _sessions = {}
 _MAX_SESSIONS = 1000
 _SESSION_TTL_SECONDS = 1800  # 30 minutes
+_MAX_TURNS_STORED = 10
 _configured = False
 
 MEDICAL_SYSTEM_PROMPT = """You are a professional AI health assistant. Your role is to:
@@ -57,6 +59,59 @@ When providing a summary, format it as:
 **Recommended Actions**: 1-3 actionable steps
 **Related Conditions to Screen**: List relevant prediction models (heart, diabetes, kidney, depression)
 """
+
+_PROMPT_INJECTION_PATTERNS = [
+    r"\bignore (all|any|previous|earlier) (instructions|rules|messages)\b",
+    r"\bdisregard (all|any|previous|earlier) (instructions|rules|messages)\b",
+    r"\byou are now\b",
+    r"\b(system prompt|developer message|hidden instructions)\b",
+    r"\bact as\b",
+    r"\bpretend to be\b",
+    r"\bDAN\b",
+    r"\bjailbreak\b",
+]
+
+_DISALLOWED_MEDICAL_OUTPUT_PATTERNS = [
+    r"\b(i diagnose you with|my diagnosis is|you have)\b",
+    r"\bprescribe\b",
+    r"\btake\s+\d+(\.\d+)?\s*(mg|mcg|g|ml)\b",
+    r"\bstart (taking|using)\b.*\b(medication|drug|antibiotic)\b",
+]
+
+
+def _looks_like_prompt_injection(user_message: str) -> bool:
+    text = (user_message or "").lower()
+    return any(re.search(p, text) for p in _PROMPT_INJECTION_PATTERNS)
+
+
+def _sanitize_user_message(user_message: str) -> str:
+    """Best-effort sanitization: normalize whitespace and strip control chars."""
+    if not user_message:
+        return ""
+    msg = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", " ", str(user_message))
+    msg = re.sub(r"\s+", " ", msg).strip()
+    return msg
+
+
+def _is_response_safe(ai_response: str) -> bool:
+    if not ai_response:
+        return True
+    text = ai_response.lower()
+    return not any(re.search(p, text) for p in _DISALLOWED_MEDICAL_OUTPUT_PATTERNS)
+
+
+def _safety_rewrite() -> str:
+    """Fallback message if the model output violates safety constraints."""
+    return (
+        "I can’t provide a diagnosis or medication instructions. "
+        "I can help you think through symptoms and safe next steps.\n\n"
+        "**Recommended Actions**: If symptoms are severe, worsening, or you’re unsure, "
+        "seek urgent medical care or contact a clinician. If you have chest pain, "
+        "severe breathing difficulty, stroke symptoms, or thoughts of self-harm, "
+        "call emergency services immediately.\n\n"
+        "Tell me your main symptoms, when they started, and any red flags (chest pain, "
+        "shortness of breath, one-sided weakness, severe allergic reaction, suicidal thoughts)."
+    )
 
 
 def is_llm_available():
@@ -123,13 +178,39 @@ def chat(session_id, user_message):
     session = _sessions[session_id]
     session['turn_count'] += 1
 
+    cleaned_user_message = _sanitize_user_message(user_message)
+    if _looks_like_prompt_injection(cleaned_user_message):
+        return {
+            'response': (
+                "I can’t follow instructions that try to override my safety rules. "
+                "Please describe your symptoms, when they started, and any severe/emergency signs."
+            ),
+            'is_emergency': False,
+            'suggestions': [
+                "I have chest pain and shortness of breath",
+                "I feel very tired and dizzy",
+                "I've been feeling hopeless and can't sleep",
+            ],
+            'session_id': session_id,
+            'turn_count': session['turn_count'],
+            'mode': 'llm-guardrail',
+        }
+
     # Build conversation history for context
     history_text = ""
     for turn in session['history']:
         history_text += f"Patient: {turn['user']}\nAssistant: {turn['assistant']}\n"
 
     # Construct the prompt
-    prompt = f"{MEDICAL_SYSTEM_PROMPT}\n\nConversation so far:\n{history_text}\nPatient: {user_message}\n\nAssistant:"
+    prompt = (
+        f"{MEDICAL_SYSTEM_PROMPT}\n\n"
+        "Conversation so far:\n"
+        f"{history_text}\n"
+        "<user_input>\n"
+        f"{cleaned_user_message}\n"
+        "</user_input>\n\n"
+        "Assistant:"
+    )
 
     if session['turn_count'] >= 4:
         prompt += "\n\n(This is turn 4+. Please provide a summary assessment now.)"
@@ -148,16 +229,24 @@ def chat(session_id, user_message):
             'mode': 'error',
         }
 
+    if not _is_response_safe(ai_response):
+        logger.warning("LLM output failed safety check; rewriting response.")
+        ai_response = _safety_rewrite()
+
     # Save to history
     session['history'].append({
-        'user': user_message,
+        'user': cleaned_user_message,
         'assistant': ai_response,
     })
+    if len(session['history']) > _MAX_TURNS_STORED:
+        session['history'] = session['history'][-_MAX_TURNS_STORED:]
 
     # Check for emergency indicators
     emergency_keywords = [
         'emergency', 'call 911', 'call 988', 'go to er',
         'seek immediate', 'medical emergency', '🚨',
+        'go to the emergency room', 'go to an emergency room', 'call emergency services',
+        'seek urgent care', 'seek immediate medical attention',
     ]
     is_emergency = any(kw in ai_response.lower() for kw in emergency_keywords)
 

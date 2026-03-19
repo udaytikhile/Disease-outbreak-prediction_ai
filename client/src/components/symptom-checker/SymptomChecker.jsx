@@ -40,6 +40,7 @@ const getConfidenceLabel = (score) => {
 }
 
 const SymptomChecker = ({ onClose, onStartAssessment }) => {
+  const MotionDiv = motion.div
   // ── State ──────────────────────────────
   const [step, setStep] = useState('demographics') // demographics → symptoms → results
   const [demographics, setDemographics] = useState({ age: '', sex: '' })
@@ -340,7 +341,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
       {/* ── HIPAA / AI Disclaimer Banner ── */}
       <AnimatePresence>
         {showDisclaimer && (
-          <motion.div
+          <MotionDiv
             className="disclaimer-banner"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -352,7 +353,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
               <p>This AI tool is for <strong>informational purposes only</strong> — it does not provide medical advice, diagnosis, or treatment. No data is stored. Always consult a healthcare professional.</p>
               <button className="disclaimer-close" onClick={() => setShowDisclaimer(false)} aria-label="Dismiss disclaimer">✕</button>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -782,7 +783,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                   />
                   <AnimatePresence>
                     {showAutocomplete && (
-                      <motion.div
+                      <MotionDiv
                         className="autocomplete-dropdown"
                         role="listbox"
                         id="symptom-listbox"
@@ -801,7 +802,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                             <span className="autocomplete-match" aria-hidden="true">🔍</span> {r}
                           </button>
                         ))}
-                      </motion.div>
+                      </MotionDiv>
                     )}
                   </AnimatePresence>
                 </div>

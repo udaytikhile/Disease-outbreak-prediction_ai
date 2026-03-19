@@ -435,6 +435,34 @@
   text-align: center;
 }
 
+/* ── Medical Disclaimer ───────────────────────────────────────────────────── */
+.chat-disclaimer-banner {
+  margin: 0.75rem 1rem 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.chat-message-disclaimer {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(75, 85, 99, 0.9);
+}
+
+[data-theme="dark"] .chat-disclaimer-banner {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.25);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .chat-message-disclaimer {
+  color: rgba(148, 163, 184, 0.95);
+}
+
 /* ── Animation ────────────────────────────────────────────────────────────── */
 @keyframes chatFadeIn {
   from { opacity: 0; transform: translateY(8px); }
