@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import config from '../../config'
+import { fetchWithTimeout } from '../../api/client'
 import BodyMap from './BodyMap'
 import { REGION_SYMPTOMS } from './constants'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -222,7 +222,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     }])
 
     try {
-      const response = await fetch(`${config.API_URL}/symptom-check`, {
+      const response = await fetchWithTimeout('/symptom-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,7 +250,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     } catch {
       setMessages(prev => [...prev, {
         type: 'ai',
-        content: `Connection error. Make sure the backend server is running at ${config.API_URL}`,
+        content: 'Connection error. The backend server may be waking up — please try again in 30 seconds.',
         isError: true, timestamp: new Date(),
       }])
     } finally {
@@ -274,7 +274,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     }])
 
     try {
-      const response = await fetch(`${config.API_URL}/symptom-followup`, {
+      const response = await fetchWithTimeout('/symptom-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
