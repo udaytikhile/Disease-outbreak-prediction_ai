@@ -358,9 +358,10 @@ class ModelService:
                 else:
                     shap_vals = sv
 
-            if feature_names is None or len(feature_names) != len(shap_vals):
+            names = feature_names
+            if names is None or len(names) != len(shap_vals):
                 # Fall back to generic names
-                feature_names = [f"feature_{i}" for i in range(len(shap_vals))]
+                names = [f"feature_{i}" for i in range(len(shap_vals))]
 
             # Prettify transformer prefix (e.g. "num__BMI" → "BMI")
             def clean_name(name: str) -> str:
@@ -384,7 +385,7 @@ class ModelService:
                     direction = 'risk' if sv_val > 0 else 'protective'
                     
                 contributions.append({
-                    'feature':      clean_name(feature_names[idx]),
+                    'feature':      clean_name(names[idx]),
                     'contribution': round(float(sv_val), 4),
                     'direction':    direction,
                     'pct':          pct,
