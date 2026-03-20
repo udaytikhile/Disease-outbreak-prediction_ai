@@ -2,7 +2,7 @@
  * HTTP Client — Centralized fetch wrapper with timeout and error handling.
  *
  * All API calls go through this module, ensuring consistent:
- *   - Request timeout (15s default)
+ *   - Request timeout (60s — handles Render free-tier cold starts)
  *   - Base URL resolution
  *   - Content-Type headers
  *   - AbortController integration
@@ -12,7 +12,7 @@
  */
 import config from '../config'
 
-const DEFAULT_TIMEOUT_MS = 15000
+const DEFAULT_TIMEOUT_MS = 60000
 
 /**
  * Fetch with automatic timeout via AbortController.
