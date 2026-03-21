@@ -55,11 +55,11 @@
 
 /* ── Specific Backgrounds ── */
 .prediction-page.diabetes-bg {
-  background: linear-gradient(rgba(240, 249, 255, 0.7), rgba(248, 250, 252, 0.8)), url('../assets/diabetes.png') center/cover no-repeat fixed;
+  background: linear-gradient(rgba(240, 249, 255, 0.7), rgba(248, 250, 252, 0.8));
 }
 
 [data-theme="dark"] .prediction-page.diabetes-bg {
-  background: linear-gradient(rgba(12, 18, 34, 0.75), rgba(15, 23, 42, 0.85)), url('../assets/diabetes.png') center/cover no-repeat fixed;
+  background: linear-gradient(rgba(12, 18, 34, 0.75), rgba(15, 23, 42, 0.85));
 }
 
 /* ── Page Wrapper ── */
@@ -516,16 +516,37 @@
 }
 
 @keyframes shakeX {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  40% { transform: translateX(4px); }
-  60% { transform: translateX(-3px); }
-  80% { transform: translateX(2px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-5px);
+  }
+
+  40% {
+    transform: translateX(4px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
 }
 
 @keyframes progressShimmer {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
 }
 
 /* ── Sticky Predict Button ── */
