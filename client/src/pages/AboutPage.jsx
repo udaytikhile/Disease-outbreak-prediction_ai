@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import logoIcon from '../assets/logo-icon.png'
-import udayImg from '../assets/uday-tikhile.png'
+import udayImg from '../assets/uday.png'
+import amitImg from '../assets/amit.png'
+import omImg from '../assets/om.png'
+import ujjwalImg from '../assets/ujjwal.png'
 import '../styles/about.css'
 
 const AboutPage = ({ onClose }) => {
@@ -24,21 +27,21 @@ const AboutPage = ({ onClose }) => {
             name: 'Amit Wadode',
             role: 'UI/UX Design',
             desc: 'Ensuring the platform is clean, intuitive, and easy to use for everyone.',
-            image: 'https://ui-avatars.com/api/?name=Amit+Wadode&background=64748b&color=fff&size=200&bold=true',
+            image: amitImg,
             highlight: false
         },
         {
             name: 'Om Itnare',
             role: 'Backend & Database Manager',
             desc: 'Managing data processing, system logic, and performance optimization.',
-            image: 'https://ui-avatars.com/api/?name=Om+Itnare&background=64748b&color=fff&size=200&bold=true',
+            image: omImg,
             highlight: false
         },
         {
             name: 'Ujjwal Itnare',
             role: 'Content, Testing & Growth',
             desc: 'Ensuring accuracy, improving user experience, and helping the platform reach more users.',
-            image: 'https://ui-avatars.com/api/?name=Ujjwal+Itnare&background=64748b&color=fff&size=200&bold=true',
+            image: ujjwalImg,
             highlight: false
         }
     ]
