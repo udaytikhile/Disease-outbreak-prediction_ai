@@ -1,0 +1,401 @@
+/* ========================================
+   ABOUT US PAGE — Futuristic & Minimal
+   ======================================== */
+
+.about-page {
+    min-height: 100vh;
+    padding: 2rem;
+    background: linear-gradient(160deg, #f8fafc 0%, #f1f5f9 100%);
+    position: relative;
+    overflow-x: hidden;
+    color: var(--text-dark);
+}
+
+[data-theme="dark"] .about-page {
+    background: linear-gradient(160deg, #020617 0%, #0f172a 100%);
+    color: #f8fafc;
+}
+
+.about-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-top: 3rem;
+    padding-bottom: 5rem;
+}
+
+/* ── Back Button ── */
+.about-back-btn {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.about-back-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    color: #0d9488;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
+    transform: translateX(-2px);
+}
+
+[data-theme="dark"] .about-back-btn {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .about-back-btn:hover {
+    background: rgba(30, 41, 59, 0.9);
+    color: #5eead4;
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.15);
+}
+
+/* ── Hero Section ── */
+.about-hero {
+    text-align: center;
+    position: relative;
+    margin-bottom: 4rem;
+}
+
+.about-hero-bg-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .about-hero-bg-glow {
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, transparent 70%);
+}
+
+.about-logo {
+    position: relative;
+    z-index: 1;
+    height: 80px;
+    width: auto;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.2));
+    animation: floatMedium 6s ease-in-out infinite;
+}
+
+.about-title {
+    position: relative;
+    z-index: 1;
+    font-family: var(--heading-font);
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+[data-theme="dark"] .about-title {
+    background: linear-gradient(135deg, #f8fafc 0%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.about-subtitle {
+    position: relative;
+    z-index: 1;
+    font-size: 1.2rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .about-subtitle {
+    color: #94a3b8;
+}
+
+/* ── Section Titles ── */
+.about-section-title {
+    font-family: var(--heading-font);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .about-section-title {
+    color: #f8fafc;
+}
+
+/* ── Introduction Card ── */
+.about-intro-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 3rem;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+    text-align: center;
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: #334155;
+    margin-bottom: 5rem;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .about-intro-card {
+    background: rgba(30, 41, 59, 0.4);
+    border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    color: #cbd5e1;
+}
+
+.about-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, transparent);
+    opacity: 0.6;
+}
+
+/* ── Mission Section ── */
+.about-mission {
+    margin-bottom: 5rem;
+}
+
+.mission-content {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    background: linear-gradient(135deg, rgba(240, 249, 255, 0.8) 0%, rgba(224, 242, 254, 0.5) 100%);
+    padding: 2.5rem;
+    border-radius: 24px;
+    border-left: 4px solid #0ea5e9;
+}
+
+[data-theme="dark"] .mission-content {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.5) 100%);
+    border-left-color: #38bdf8;
+}
+
+.mission-icon {
+    font-size: 3rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(14, 165, 233, 0.15);
+}
+
+[data-theme="dark"] .mission-icon {
+    background: #1e293b;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.mission-content p {
+    font-size: 1.2rem;
+    font-weight: 500;
+    line-height: 1.7;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .mission-content p {
+    color: #e2e8f0;
+}
+
+/* ── Team Grid ── */
+.about-team {
+    margin-bottom: 6rem;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+}
+
+.team-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .team-card {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.team-card:hover {
+    box-shadow: 0 16px 32px rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.2);
+}
+
+[data-theme="dark"] .team-card:hover {
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.team-lead {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: linear-gradient(180deg, rgba(238, 242, 255, 0.5) 0%, white 100%);
+}
+
+[data-theme="dark"] .team-lead {
+    background: linear-gradient(180deg, rgba(30, 27, 75, 0.4) 0%, #1e293b 100%);
+    border-color: rgba(129, 140, 248, 0.3);
+}
+
+.team-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.team-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: #f1f5f9;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+
+[data-theme="dark"] .team-avatar {
+    background: #0f172a;
+}
+
+.team-name {
+    font-family: var(--heading-font);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.team-role {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #0ea5e9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+}
+
+[data-theme="dark"] .team-role {
+    color: #38bdf8;
+}
+
+.team-desc {
+    font-size: 0.95rem;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+[data-theme="dark"] .team-desc {
+    color: #94a3b8;
+}
+
+/* ── Footer Section ── */
+.about-footer {
+    text-align: center;
+    padding-top: 2rem;
+}
+
+.about-footer-text {
+    font-family: var(--heading-font);
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 1rem;
+}
+
+[data-theme="dark"] .about-footer-text {
+    background: linear-gradient(135deg, #94a3b8 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.about-footer-line {
+    width: 40px;
+    height: 4px;
+    background: var(--primary-gradient);
+    margin: 0 auto;
+    border-radius: 2px;
+}
+
+[data-theme="dark"] .about-footer-line {
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .about-page {
+        padding: 1rem;
+    }
+
+    .about-hero {
+        margin-bottom: 3rem;
+    }
+
+    .about-title {
+        font-size: 2.5rem;
+    }
+
+    .about-intro-card {
+        padding: 2rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .mission-content {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem;
+        gap: 1.5rem;
+        border-left: none;
+        border-top: 4px solid #0ea5e9;
+    }
+
+    .team-grid {
+        grid-template-columns: 1fr;
+    }
+}

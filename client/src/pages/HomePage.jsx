@@ -323,7 +323,8 @@ const HomePage = ({ onSelectDisease, onViewChecker }) => {
                             </a>
                         </div>
                         <div className="clinical-footer-col">
-                            <h4>Legal</h4>
+                            <h4>Legal / Company</h4>
+                            <Link to="/about">🏢 About Us</Link>
                             <Link to="/privacy">🔒 Privacy Policy</Link>
                             <Link to="/terms">📜 Terms of Service</Link>
                         </div>
