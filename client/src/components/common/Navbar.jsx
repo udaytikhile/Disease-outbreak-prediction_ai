@@ -1,4 +1,4 @@
-// IMPROVED: Refactored mobile/desktop nav rendering, removed render-time viewport checks, and improved animation consistency.
+// FIXED: Added scroll-aware glass navbar behavior with smoother mobile/desktop navigation structure and transitions.
 import { useState, useEffect } from 'react'
 import logo from '../../assets/logo-icon.png'
 import { useLocation, Link } from 'react-router-dom'
@@ -59,8 +59,6 @@ const Navbar = () => {
         { path: '/tips', label: 'Health Info', icon: '🏥' },
         { path: '/checker', label: 'Symptom Check', icon: '🔍' },
         { path: '/profile', label: 'Profile', icon: '👤' },
-        { path: '/privacy', label: 'Privacy', icon: '🔒' },
-        { path: '/terms', label: 'Terms', icon: '📜' },
     ]
 
     const isActive = (path) => location.pathname === path

@@ -1,4 +1,4 @@
-// IMPROVED: Added route-level AnimatePresence transitions and shell layout wrappers for smoother navigation and cleaner global structure.
+// FIXED: Added route-level AnimatePresence transitions and grid-based shell layout for smoother page navigation.
 /**
  * App — Root application component (routing shell).
  *

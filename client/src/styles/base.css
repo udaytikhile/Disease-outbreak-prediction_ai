@@ -1,4 +1,4 @@
-/* IMPROVED: Introduced a complete design-token system, fluid typography, focus/ripple micro-interactions, and unified UI primitives to improve consistency, animation smoothness, and maintainable styling architecture. */
+/* FIXED: Added complete design tokens, typography polish, focus/ripple interactions, and unified card/button/input primitives. */
 
 :root {
   --font-sans: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

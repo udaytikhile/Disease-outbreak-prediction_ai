@@ -1,4 +1,4 @@
-/* IMPROVED: Upgraded navbar glassmorphism-on-scroll behavior, smoother shadow reveal, and cleaner desktop/mobile link architecture with consistent transitions. */
+/* FIXED: Added scroll-triggered glassmorphism, refined shadow reveal, and stabilized responsive navbar interaction states. */
 
 .navbar {
   position: fixed;

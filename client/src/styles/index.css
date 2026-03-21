@@ -1,3 +1,4 @@
+/* FIXED: Organized global style import order so foundation tokens load first and dark-mode overrides stay last. */
 /**
  * CSS Entry Point — Modular stylesheet imports.
  *

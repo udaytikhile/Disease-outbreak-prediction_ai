@@ -322,6 +322,11 @@ const HomePage = ({ onSelectDisease, onViewChecker }) => {
                                 Instagram
                             </a>
                         </div>
+                        <div className="clinical-footer-col">
+                            <h4>Legal</h4>
+                            <Link to="/privacy">🔒 Privacy Policy</Link>
+                            <Link to="/terms">📜 Terms of Service</Link>
+                        </div>
                     </div>
                     <div className="clinical-footer-bottom">
                         <p>© 2026 Medixa AI. Made with ❤️ for better health awareness.</p>

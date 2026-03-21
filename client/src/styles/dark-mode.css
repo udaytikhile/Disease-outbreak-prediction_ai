@@ -1,4 +1,4 @@
-/* IMPROVED: Dark theme now overrides full color token palette via [data-theme="dark"] for deterministic manual theme switching without media-query coupling. */
+/* FIXED: Dark mode now overrides tokenized color system exclusively through [data-theme="dark"] for manual theme parity. */
 
 [data-theme="dark"] {
   --color-primary-50: #1f2348;
