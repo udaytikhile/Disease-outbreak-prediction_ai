@@ -12,7 +12,7 @@
  */
 import config from '../config'
 
-const DEFAULT_TIMEOUT_MS = 60000
+const DEFAULT_TIMEOUT_MS = 90000
 
 /**
  * Fetch with automatic timeout via AbortController.

@@ -77,8 +77,8 @@ export function PredictionProvider({ children }) {
             }
         } catch (err) {
             if (err.name === 'AbortError') {
-                setError('Request timed out. The server may be overloaded — please try again.')
-                showToast('Request timed out. Try again.', 'error')
+                setError('Request timed out. The free backend server (Render) is waking up from sleep — please try again.')
+                showToast('Server waking up. Try again.', 'error')
             } else {
                 setError('Connection error: Make sure the backend server is running.')
                 showToast('Connection error. Is the backend running?', 'error')
