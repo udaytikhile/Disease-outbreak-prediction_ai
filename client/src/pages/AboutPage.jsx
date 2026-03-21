@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import logoIcon from '../assets/logo-icon.png'
+import udayImg from '../assets/uday-tikhile.png'
 import '../styles/about.css'
 
 const AboutPage = ({ onClose }) => {
@@ -16,7 +17,7 @@ const AboutPage = ({ onClose }) => {
             name: 'Uday Tikhile',
             role: 'Lead Developer & AI Architect',
             desc: 'Merging healthcare with artificial intelligence to build predictive systems that save lives.',
-            image: 'https://ui-avatars.com/api/?name=Uday+Tikhile&background=0ea5e9&color=fff&size=200&bold=true',
+            image: udayImg,
             highlight: true
         },
         {
