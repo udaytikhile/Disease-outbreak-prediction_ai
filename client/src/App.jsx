@@ -13,7 +13,6 @@
  */
 import { useEffect, useMemo, lazy, Suspense } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
 import { PredictionProvider } from './context/PredictionContext'
 import { usePrediction } from './hooks/usePrediction'
 
@@ -42,15 +41,6 @@ const HistoryPage = lazy(() => import('./pages/HistoryPage'))
 const Dashboard = lazy(() => import('./pages/DashboardPage'))
 const SymptomChecker = lazy(() => import('./components/symptom-checker/SymptomChecker'))
 const SymptomCheckerChat = lazy(() => import('./components/symptom-checker/SymptomCheckerChat'))
-
-const PAGE_TRANSITION = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -16 },
-  transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
-}
-
-
 
 /**
  * AppRoutes — Inner component that consumes PredictionContext.
@@ -93,8 +83,6 @@ function AppRoutes() {
       <ErrorBoundary>
         <main id="main-content" className="app-shell">
           <Suspense fallback={<LoadingAnalysis disease="app" />}>
-            <AnimatePresence mode="wait">
-              <motion.div key={location.pathname} {...PAGE_TRANSITION}>
                 <Routes>
                   <Route path="/" element={
                     <HomePage
@@ -150,8 +138,6 @@ function AppRoutes() {
                   } />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
-              </motion.div>
-            </AnimatePresence>
           </Suspense>
         </main>
       </ErrorBoundary>

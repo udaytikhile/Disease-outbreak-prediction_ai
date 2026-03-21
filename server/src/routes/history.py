@@ -44,7 +44,10 @@ def get_history():
 
     return jsonify({
         'success': True,
-        'predictions': [p.to_dict() for p in pagination.items],
+        'predictions': [
+            p.to_dict(include_input_data=False, include_shap_contributions=False)
+            for p in pagination.items
+        ],
         'total': pagination.total,
         'page': pagination.page,
         'pages': pagination.pages,

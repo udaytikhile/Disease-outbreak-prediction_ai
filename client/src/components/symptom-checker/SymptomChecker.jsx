@@ -1,5 +1,5 @@
 // IMPROVED: Replaced direct fetch calls with symptomApi abstractions to keep network logic outside UI components.
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { checkSymptoms, submitFollowup } from '../../api/symptomApi'
 import BodyMap from './BodyMap'
 import { REGION_SYMPTOMS } from './constants'
@@ -66,6 +66,11 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const autocompleteRef = useRef(null)
+  const createMessage = useCallback((message) => ({ id: crypto.randomUUID(), ...message }), [])
+  const symptomSet = useMemo(
+    () => new Set(symptoms.map((s) => s.toLowerCase())),
+    [symptoms]
+  )
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -87,14 +92,14 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
   // ── Demographics Step ──────────────────
   const handleDemographicsSubmit = () => {
     setStep('symptoms')
-    setMessages([{
+    setMessages([createMessage({
       type: 'ai',
       content: demographics.age || demographics.sex
         ? `Thanks! I've noted your details${demographics.age ? ` (age: ${demographics.age})` : ''}${demographics.sex ? ` (sex: ${demographics.sex})` : ''}. 👋`
         : "Hello! I'm your AI Health Assistant. 👋",
       subtext: "Now tell me about your symptoms. You can type them, use the suggestions below, or describe how you feel in everyday language — I understand natural phrasing!",
       timestamp: new Date(),
-    }])
+    })])
   }
 
   const handleSkipDemographics = () => {
@@ -121,14 +126,14 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
       const lower = value.toLowerCase()
       const filtered = QUICK_SYMPTOMS.filter(s =>
         s.toLowerCase().includes(lower) &&
-        !symptoms.find(ex => ex.toLowerCase() === s.toLowerCase())
+        !symptomSet.has(s.toLowerCase())
       ).slice(0, 6)
       setAutocompleteResults(filtered)
       setShowAutocomplete(filtered.length > 0)
     } else {
       setShowAutocomplete(false)
     }
-  }, [symptoms])
+  }, [symptomSet])
 
   const handleKeyDown = (e) => {
     if (!showAutocomplete || autocompleteResults.length === 0) return
@@ -155,16 +160,16 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
   const addSymptom = (symptom) => {
     const trimmed = symptom.trim()
     if (!trimmed) return
-    if (symptoms.find(s => s.toLowerCase() === trimmed.toLowerCase())) return
+    if (symptomSet.has(trimmed.toLowerCase())) return
 
     const updated = [...symptoms, trimmed]
     setSymptoms(updated)
     setActiveSeveritySymptom(trimmed)
     setShowAutocomplete(false)
 
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, createMessage({
       type: 'user', content: trimmed, timestamp: new Date(),
-    }])
+    })])
 
     const ackMessages = [
       `Noted — "${trimmed}". You can set severity/duration below, or add more symptoms.`,
@@ -174,12 +179,12 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
       `Understood — "${trimmed}". I'll factor this into the analysis.`,
     ]
     setTimeout(() => {
-      setMessages(prev => [...prev, {
+      setMessages(prev => [...prev, createMessage({
         type: 'ai',
         content: ackMessages[updated.length % ackMessages.length],
         subtext: `${updated.length} symptom${updated.length > 1 ? 's' : ''} recorded so far.`,
         timestamp: new Date(),
-      }])
+      })])
     }, 400)
 
     setInputValue('')
@@ -201,11 +206,11 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     setSeverityMap(prev => { const n = { ...prev }; delete n[symptomToRemove]; return n })
     setDurationMap(prev => { const n = { ...prev }; delete n[symptomToRemove]; return n })
     if (activeSeveritySymptom === symptomToRemove) setActiveSeveritySymptom(null)
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, createMessage({
       type: 'ai',
       content: `Removed "${symptomToRemove}" from the analysis.`,
       timestamp: new Date(),
-    }])
+    })])
   }
 
   const handleInputSubmit = (e) => {
@@ -218,9 +223,9 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     if (symptoms.length === 0) return
     setIsAnalyzing(true)
     setActiveSeveritySymptom(null)
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, createMessage({
       type: 'user', content: '🔬 Analyze my symptoms', isAction: true, timestamp: new Date(),
-    }])
+    })])
 
     try {
       const data = await checkSymptoms({
@@ -233,22 +238,22 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
       if (data.success) {
         setAnalysisResult(data.analysis)
         setStep('results')
-        setMessages(prev => [...prev, {
+        setMessages(prev => [...prev, createMessage({
           type: 'ai', content: 'Analysis complete! Here are my findings:',
           isAnalysis: true, analysis: data.analysis, timestamp: new Date(),
-        }])
+        })])
       } else {
-        setMessages(prev => [...prev, {
+        setMessages(prev => [...prev, createMessage({
           type: 'ai', content: `Sorry, something went wrong: ${data.error}`,
           isError: true, timestamp: new Date(),
-        }])
+        })])
       }
     } catch {
-      setMessages(prev => [...prev, {
+      setMessages(prev => [...prev, createMessage({
         type: 'ai',
         content: 'Connection error. The backend server may be waking up — please try again in 30 seconds.',
         isError: true, timestamp: new Date(),
-      }])
+      })])
     } finally {
       setIsAnalyzing(false)
     }
@@ -257,17 +262,17 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
   // ── Follow-up Answers ──────────────────
   const handleFollowUpAnswer = (questionId, answer) => {
     setFollowUpAnswers(prev => ({ ...prev, [questionId]: answer }))
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, createMessage({
       type: 'user', content: answer, timestamp: new Date(),
-    }])
+    })])
   }
 
   const submitFollowUp = async () => {
     setIsFollowingUp(true)
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, createMessage({
       type: 'ai', content: 'Refining analysis with your additional answers…',
       subtext: 'Please wait a moment.', timestamp: new Date(),
-    }])
+    })])
 
     try {
       const data = await submitFollowup({
@@ -279,16 +284,16 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
       })
       if (data.success) {
         setAnalysisResult(data.analysis)
-        setMessages(prev => [...prev, {
+        setMessages(prev => [...prev, createMessage({
           type: 'ai', content: '✅ Updated analysis with your follow-up answers:',
           isAnalysis: true, analysis: data.analysis, timestamp: new Date(),
-        }])
+        })])
       }
     } catch {
-      setMessages(prev => [...prev, {
+      setMessages(prev => [...prev, createMessage({
         type: 'ai', content: 'Could not refine analysis. Please try again.',
         isError: true, timestamp: new Date(),
-      }])
+      })])
     } finally {
       setIsFollowingUp(false)
     }
@@ -299,11 +304,11 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     setStep('symptoms')
     setAnalysisResult(null)
     setShowSuggestions(true)
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, createMessage({
       type: 'ai',
       content: "Sure! You can add more symptoms or ask me anything. I'll re-analyze with the new information.",
       timestamp: new Date(),
-    }])
+    })])
   }
 
   // ── Reset ──────────────────────────────
@@ -320,8 +325,13 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     setMessages([])
   }
 
-  const filteredSuggestions = QUICK_SYMPTOMS.filter(
-    s => !symptoms.find(existing => existing.toLowerCase() === s.toLowerCase())
+  const filteredSuggestions = useMemo(
+    () => QUICK_SYMPTOMS.filter((s) => !symptomSet.has(s.toLowerCase())),
+    [symptomSet]
+  )
+  const availableMapSymptoms = useMemo(
+    () => mapSymptoms.filter((s) => !symptomSet.has(s.toLowerCase())),
+    [mapSymptoms, symptomSet]
   )
 
   // ══════════════════════════════════════════════════════════════════════
@@ -448,7 +458,7 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
           {/* Messages Area */}
           <div className="symptom-chat-messages">
             {messages.map((msg, i) => (
-              <div key={i} className={`chat-msg ${msg.type === 'ai' ? 'chat-msg-ai' : 'chat-msg-user'}`}>
+              <div key={msg.id || `${msg.type}-${i}`} className={`chat-msg ${msg.type === 'ai' ? 'chat-msg-ai' : 'chat-msg-user'}`}>
                 {msg.type === 'ai' && <div className="chat-msg-avatar">🤖</div>}
                 <div className={`chat-bubble ${msg.type === 'ai' ? 'bubble-ai' : 'bubble-user'} ${msg.isError ? 'bubble-error' : ''} ${msg.isAction ? 'bubble-action' : ''}`}>
                   <p className="bubble-text">{msg.content}</p>
@@ -715,11 +725,11 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
                 <div className="symptom-suggestions body-map-suggestions">
                   <p className="suggestions-label">💡 Symptoms for {mapRegion}:</p>
                   <div className="suggestions-grid">
-                    {mapSymptoms.filter(s => !symptoms.find(existing => existing.toLowerCase() === s.toLowerCase())).map((s, i) => (
+                    {availableMapSymptoms.map((s, i) => (
                       <button key={i} className="suggestion-chip" onClick={() => addSymptom(s)}>{s}</button>
                     ))}
                   </div>
-                  {mapSymptoms.filter(s => !symptoms.find(existing => existing.toLowerCase() === s.toLowerCase())).length === 0 && (
+                  {availableMapSymptoms.length === 0 && (
                     <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-light)' }}>All available symptoms for {mapRegion} added.</p>
                   )}
                 </div>

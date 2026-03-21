@@ -30,7 +30,10 @@ const Dashboard = ({ onClose }) => {
 
     const MotionDiv = motion.div
 
-    const diseaseOptions = Array.from(new Set(history.map(p => p.disease))).filter(Boolean)
+    const diseaseOptions = useMemo(
+        () => Array.from(new Set(history.map((p) => p.disease))).filter(Boolean),
+        [history]
+    )
 
     // #1: Memoize time-filtered history
     const timeFiltered = useMemo(() => {
@@ -74,14 +77,31 @@ const Dashboard = ({ onClose }) => {
         'Depression': '#8b5cf6'
     }
 
-    const totalFiltered = filtered.length
-    const highRiskFiltered = filtered.filter(p => p.risk_level === 'High').length
-    const lowRiskFiltered = filtered.filter(p => p.risk_level === 'Low').length
-
-    const validConfPredictions = filtered.filter(p => typeof p.confidence === 'number')
-    const avgConfFiltered = validConfPredictions.length > 0
-        ? (validConfPredictions.reduce((sum, p) => sum + p.confidence, 0) / validConfPredictions.length)
-        : 0
+    const {
+        totalFiltered,
+        highRiskFiltered,
+        lowRiskFiltered,
+        avgConfFiltered
+    } = useMemo(() => {
+        let highRisk = 0
+        let lowRisk = 0
+        let confidenceSum = 0
+        let confidenceCount = 0
+        for (const prediction of filtered) {
+            if (prediction.risk_level === 'High') highRisk += 1
+            else if (prediction.risk_level === 'Low') lowRisk += 1
+            if (typeof prediction.confidence === 'number') {
+                confidenceSum += prediction.confidence
+                confidenceCount += 1
+            }
+        }
+        return {
+            totalFiltered: filtered.length,
+            highRiskFiltered: highRisk,
+            lowRiskFiltered: lowRisk,
+            avgConfFiltered: confidenceCount > 0 ? confidenceSum / confidenceCount : 0,
+        }
+    }, [filtered])
 
     // Recent trend
     const recentTrend = () => {
@@ -94,6 +114,10 @@ const Dashboard = ({ onClose }) => {
     }
 
     const trend = recentTrend()
+    const mostCheckedDisease = useMemo(
+        () => Object.entries(stats.byDisease).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A',
+        [stats.byDisease]
+    )
     const trendInfo = {
         improving: { icon: '📈', text: 'Improving', color: '#22c55e' },
         stable: { icon: '➡️', text: 'Stable', color: '#f59e0b' },
@@ -305,7 +329,7 @@ const Dashboard = ({ onClose }) => {
                                 <h3>Most Checked</h3>
                             </div>
                             <p className="insight-value">
-                                {Object.entries(stats.byDisease).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'}
+                                {mostCheckedDisease}
                             </p>
                             <p className="insight-detail">Your most frequently assessed disease</p>
                         </div>

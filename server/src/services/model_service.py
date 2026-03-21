@@ -33,6 +33,7 @@ except ImportError:
 
 class ModelService:
     _instance = None
+    _shap_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     def __new__(cls):
         if cls._instance is None:
@@ -394,9 +395,8 @@ class ModelService:
             return contributions
         try:
             # SHAP can be expensive; enforce a short timeout so requests don't hang.
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                fut = ex.submit(_compute)
-                return fut.result(timeout=5)
+            fut = self._shap_executor.submit(_compute)
+            return fut.result(timeout=5)
         except concurrent.futures.TimeoutError:
             logger.warning("SHAP computation timed out for %s", disease_type)
             return []
@@ -565,7 +565,7 @@ class ModelService:
         return df
 
     # ── Prediction ───────────────────────────────────────────────────────
-    def predict(self, disease_type: str, form_data: dict) -> tuple:
+    def predict(self, disease_type: str, form_data: dict, include_explanations: bool = False) -> tuple:
         if not self.loaded:
             return {'success': False, 'error': 'Models not loaded'}, 503
 
@@ -601,8 +601,11 @@ class ModelService:
                 prediction = int(pipeline.predict(features_df)[0])
                 confidence = None
 
-            # Feature 1: SHAP top-3 contributions
-            shap_contributions = self._get_shap_contributions(disease_type, features_df)
+            # SHAP is optional because it is the slowest part of the prediction path.
+            shap_contributions = (
+                self._get_shap_contributions(disease_type, features_df)
+                if include_explanations else []
+            )
 
             # Advice
             advice_map = {

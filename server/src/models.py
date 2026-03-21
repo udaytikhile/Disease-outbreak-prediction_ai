@@ -25,16 +25,16 @@ class PredictionLog(db.Model):
         index=True,
     )
 
-    def to_dict(self):
+    def to_dict(self, include_input_data=True, include_shap_contributions=True):
         return {
             'id': self.id,
             'disease_type': self.disease_type,
-            'input_data': self.input_data,
+            'input_data': self.input_data if include_input_data else None,
             'prediction': self.prediction,
             'risk_level': self.risk_level,
             'confidence': self.confidence,
             'advice': self.advice,
-            'shap_contributions': self.shap_contributions,
+            'shap_contributions': self.shap_contributions if include_shap_contributions else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+import concurrent.futures
 from marshmallow import ValidationError
 from ..services.model_service import model_service
 from ..schemas import (
@@ -11,26 +12,41 @@ from ..extensions import limiter, db, logger
 from ..models import PredictionLog
 
 predict_bp = Blueprint('predict', __name__)
+_log_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 
-def _log_prediction(disease_type, input_data, response_data):
+def _persist_prediction_log(app, disease_type, input_data, response_data, ip_address):
     """Persist prediction result to database."""
+    with app.app_context():
+        try:
+            log = PredictionLog(
+                disease_type=disease_type,
+                input_data=input_data,
+                prediction=response_data.get('prediction', 0),
+                risk_level=response_data.get('risk_level', 'Unknown'),
+                confidence=response_data.get('confidence'),
+                advice=response_data.get('advice', ''),
+                shap_contributions=response_data.get('shap_contributions'),
+                ip_address=ip_address,
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as e:
+            logger.warning(f"Failed to log prediction: {e}")
+            db.session.rollback()
+
+
+def _log_prediction_async(disease_type, input_data, response_data):
+    """Queue non-blocking history logging after response generation."""
     try:
-        log = PredictionLog(
-            disease_type=disease_type,
-            input_data=input_data,
-            prediction=response_data.get('prediction', 0),
-            risk_level=response_data.get('risk_level', 'Unknown'),
-            confidence=response_data.get('confidence'),
-            advice=response_data.get('advice', ''),
-            shap_contributions=response_data.get('shap_contributions'),
-            ip_address=request.remote_addr,
+        from flask import current_app
+        app_obj = current_app._get_current_object()
+        ip_address = request.remote_addr
+        _log_executor.submit(
+            _persist_prediction_log, app_obj, disease_type, input_data, response_data, ip_address
         )
-        db.session.add(log)
-        db.session.commit()
     except Exception as e:
-        logger.warning(f"Failed to log prediction: {e}")
-        db.session.rollback()
+        logger.warning(f"Failed to queue prediction log: {e}")
 
 
 @predict_bp.route('/predict/heart', methods=['POST'])
@@ -73,9 +89,10 @@ def predict_heart():
     except ValidationError as err:
         return jsonify({'success': False, 'error': err.messages}), 400
 
-    response, status_code = model_service.predict('heart', data)
+    include_explanations = request.args.get('include_explanations', 'false').lower() == 'true'
+    response, status_code = model_service.predict('heart', data, include_explanations=include_explanations)
     if response.get('success'):
-        _log_prediction('heart', data, response)
+        _log_prediction_async('heart', data, response)
     return jsonify(response), status_code
 
 
@@ -99,9 +116,10 @@ def predict_diabetes():
     except ValidationError as err:
         return jsonify({'success': False, 'error': err.messages}), 400
 
-    response, status_code = model_service.predict('diabetes', data)
+    include_explanations = request.args.get('include_explanations', 'false').lower() == 'true'
+    response, status_code = model_service.predict('diabetes', data, include_explanations=include_explanations)
     if response.get('success'):
-        _log_prediction('diabetes', data, response)
+        _log_prediction_async('diabetes', data, response)
     return jsonify(response), status_code
 
 
@@ -125,9 +143,10 @@ def predict_kidney():
     except ValidationError as err:
         return jsonify({'success': False, 'error': err.messages}), 400
 
-    response, status_code = model_service.predict('kidney', data)
+    include_explanations = request.args.get('include_explanations', 'false').lower() == 'true'
+    response, status_code = model_service.predict('kidney', data, include_explanations=include_explanations)
     if response.get('success'):
-        _log_prediction('kidney', data, response)
+        _log_prediction_async('kidney', data, response)
     return jsonify(response), status_code
 
 
@@ -151,9 +170,10 @@ def predict_depression():
     except ValidationError as err:
         return jsonify({'success': False, 'error': err.messages}), 400
 
-    response, status_code = model_service.predict('depression', data)
+    include_explanations = request.args.get('include_explanations', 'false').lower() == 'true'
+    response, status_code = model_service.predict('depression', data, include_explanations=include_explanations)
     if response.get('success'):
-        _log_prediction('depression', data, response)
+        _log_prediction_async('depression', data, response)
     return jsonify(response), status_code
 
 

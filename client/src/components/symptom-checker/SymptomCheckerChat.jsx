@@ -1,5 +1,5 @@
 // IMPROVED: Added motion-based message entrance and richer markdown rendering styles for improved chat readability and feel.
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { getCheckerMode, chatSymptomChecker, endChatSession } from '../../api/symptomApi'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -9,6 +9,30 @@ const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
 const MESSAGE_VARIANTS = {
     hidden: { opacity: 0, y: 18 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+}
+const MARKDOWN_COMPONENTS = {
+    code: ({ inline, children }) =>
+        inline ? <code className="md-inline-code">{children}</code> : <code className="md-code-block">{children}</code>,
+    h1: ({ children }) => <h3 className="md-h1">{children}</h3>,
+    h2: ({ children }) => <h4 className="md-h2">{children}</h4>,
+    ul: ({ children }) => <ul className="md-list">{children}</ul>,
+    ol: ({ children }) => <ol className="md-list">{children}</ol>,
+    li: ({ children }) => <li className="md-list-item">{children}</li>,
+    a: ({ href, children, ...props }) => {
+        const safe = sanitizeHref(href)
+        if (!safe) return <span {...props}>{children}</span>
+        const external = safe.startsWith('http')
+        return (
+            <a
+                href={safe}
+                target={external ? '_blank' : undefined}
+                rel={external ? 'noreferrer noopener' : undefined}
+                {...props}
+            >
+                {children}
+            </a>
+        )
+    },
 }
 
 function sanitizeHref(href) {
@@ -27,8 +51,9 @@ function sanitizeHref(href) {
  * Falls back to rule-based mode when LLM is unavailable.
  */
 const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
-    const [messages, setMessages] = useState([
-        {
+    const mkMessage = useCallback((message) => ({ id: crypto.randomUUID(), ...message }), [])
+    const [messages, setMessages] = useState(() => [
+        mkMessage({
             role: 'assistant',
             content: "Hello! I'm your AI Health Assistant. 👋\n\nI can help you understand your symptoms and guide you to the right care. **Tell me what symptoms you're experiencing**, and I'll ask follow-up questions to better understand your situation.\n\n> ⚕️ Remember: I'm not a doctor. Always consult a healthcare professional for medical advice.",
             suggestions: [
@@ -36,7 +61,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                 "I feel very tired lately",
                 "I've been feeling anxious and sad",
             ],
-        },
+        }),
     ])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
@@ -66,7 +91,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
     const sendMessage = async (text) => {
         if (!text.trim() || loading) return
 
-        const userMsg = { role: 'user', content: text }
+        const userMsg = mkMessage({ role: 'user', content: text })
         setMessages((prev) => [...prev, userMsg])
         setInput('')
         setLoading(true)
@@ -80,6 +105,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                 }
 
                 const assistantMsg = {
+                    id: crypto.randomUUID(),
                     role: 'assistant',
                     content: data.chat.response,
                     isEmergency: data.chat.is_emergency,
@@ -91,6 +117,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                 setMessages((prev) => [
                     ...prev,
                     {
+                        id: crypto.randomUUID(),
                         role: 'assistant',
                         content: data.error || "I'm sorry, something went wrong. Please try again.",
                         isError: true,
@@ -102,6 +129,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
             setMessages((prev) => [
                 ...prev,
                 {
+                    id: crypto.randomUUID(),
                     role: 'assistant',
                     content: "I couldn't connect to the server. Please check your connection and try again.",
                     isError: true,
@@ -158,9 +186,9 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
             {/* Messages */}
             <div className="chat-messages" role="log" aria-live="polite">
                 <AnimatePresence initial={false}>
-                {messages.map((msg, idx) => (
+                {messages.map((msg) => (
                     <motion.div
-                        key={idx}
+                        key={msg.id}
                         className={`chat-bubble ${msg.role} ${msg.isEmergency ? 'emergency' : ''} ${msg.isError ? 'error' : ''}`}
                         variants={MESSAGE_VARIANTS}
                         initial="hidden"
@@ -172,30 +200,7 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                         <div className="chat-bubble-content">
                             {msg.role === 'assistant' ? (
                                 <ReactMarkdown
-                                    components={{
-                                        code: ({ inline, children }) =>
-                                            inline ? <code className="md-inline-code">{children}</code> : <code className="md-code-block">{children}</code>,
-                                        h1: ({ children }) => <h3 className="md-h1">{children}</h3>,
-                                        h2: ({ children }) => <h4 className="md-h2">{children}</h4>,
-                                        ul: ({ children }) => <ul className="md-list">{children}</ul>,
-                                        ol: ({ children }) => <ol className="md-list">{children}</ol>,
-                                        li: ({ children }) => <li className="md-list-item">{children}</li>,
-                                        a: ({ href, children, ...props }) => {
-                                            const safe = sanitizeHref(href)
-                                            if (!safe) return <span {...props}>{children}</span>
-                                            const external = safe.startsWith('http')
-                                            return (
-                                                <a
-                                                    href={safe}
-                                                    target={external ? '_blank' : undefined}
-                                                    rel={external ? 'noreferrer noopener' : undefined}
-                                                    {...props}
-                                                >
-                                                    {children}
-                                                </a>
-                                            )
-                                        },
-                                    }}
+                                    components={MARKDOWN_COMPONENTS}
                                 >
                                     {msg.content}
                                 </ReactMarkdown>
