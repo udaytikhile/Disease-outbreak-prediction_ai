@@ -1,10 +1,16 @@
+// IMPROVED: Refactored mobile/desktop nav rendering, removed render-time viewport checks, and improved animation consistency.
 import { useState, useEffect } from 'react'
 import logo from '../../assets/logo-icon.png'
 import { useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
+const MOBILE_MENU_VARIANTS = {
+    hidden: { opacity: 0, y: -12, height: 0 },
+    visible: { opacity: 1, y: 0, height: 'auto', transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+    exit: { opacity: 0, y: -8, height: 0, transition: { duration: 0.18, ease: [0.4, 0, 1, 1] } },
+}
+
 const Navbar = () => {
-    const MotionDiv = motion.div
     const [isOpen, setIsOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const [isDark, setIsDark] = useState(() => {
@@ -68,15 +74,28 @@ const Navbar = () => {
                         <span className="navbar-title">Medixa AI</span>
                     </Link>
 
+                    <div className="navbar-links navbar-links-desktop">
+                        {navLinks.map(link => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                className={`navbar-link ${isActive(link.path) ? 'active' : ''}`}
+                            >
+                                <span className="navbar-link-icon">{link.icon}</span>
+                                <span className="navbar-link-label">{link.label}</span>
+                            </Link>
+                        ))}
+                    </div>
+
                     <AnimatePresence>
-                        {(isOpen || window.innerWidth > 768) && (
-                            <MotionDiv
+                        {isOpen && (
+                            <motion.div
                                 id="navbar-links"
-                                className={`navbar-links ${isOpen ? 'open' : ''}`}
-                                initial={isOpen ? { height: 0, opacity: 0 } : false}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
+                                className="navbar-links navbar-links-mobile open"
+                                variants={MOBILE_MENU_VARIANTS}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
                             >
                                 {navLinks.map(link => (
                                     <Link
@@ -89,7 +108,7 @@ const Navbar = () => {
                                         <span className="navbar-link-label">{link.label}</span>
                                     </Link>
                                 ))}
-                            </MotionDiv>
+                            </motion.div>
                         )}
                     </AnimatePresence>
 

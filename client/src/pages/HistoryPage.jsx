@@ -1,8 +1,31 @@
+// IMPROVED: Added simple list virtualization for large histories and staggered card entrance motion.
 import { usePredictionHistory } from '../hooks/usePredictionHistory'
+import { useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
+
+const VIRTUAL_ROW_HEIGHT = 248
+const VIRTUAL_WINDOW_HEIGHT = 760
 
 const HistoryPage = ({ onClose }) => {
   const { history, deletePrediction, clearHistory, statistics, exportAsCSV, exportAsJSON } = usePredictionHistory()
   const stats = statistics
+  const [scrollTop, setScrollTop] = useState(0)
+  const shouldVirtualize = history.length > 50
+
+  const { startIndex, visibleItems, offsetY, totalHeight } = useMemo(() => {
+    if (!shouldVirtualize) {
+      return { startIndex: 0, endIndex: history.length, visibleItems: history, offsetY: 0, totalHeight: history.length * VIRTUAL_ROW_HEIGHT }
+    }
+    const start = Math.max(0, Math.floor(scrollTop / VIRTUAL_ROW_HEIGHT) - 4)
+    const end = Math.min(history.length, Math.ceil((scrollTop + VIRTUAL_WINDOW_HEIGHT) / VIRTUAL_ROW_HEIGHT) + 4)
+    return {
+      startIndex: start,
+      endIndex: end,
+      visibleItems: history.slice(start, end),
+      offsetY: start * VIRTUAL_ROW_HEIGHT,
+      totalHeight: history.length * VIRTUAL_ROW_HEIGHT,
+    }
+  }, [history, scrollTop, shouldVirtualize])
 
   return (
     <div className="history-container">
@@ -94,9 +117,11 @@ const HistoryPage = ({ onClose }) => {
             <p>No predictions yet. Make a prediction to get started!</p>
           </div>
         ) : (
-          <div className="predictions-cards">
-            {history.map((prediction, index) => (
-              <div key={prediction.id} className="prediction-card" style={{ '--i': index }}>
+          <div className="predictions-cards" style={shouldVirtualize ? { maxHeight: `${VIRTUAL_WINDOW_HEIGHT}px`, overflowY: 'auto' } : undefined} onScroll={shouldVirtualize ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}>
+            <div style={shouldVirtualize ? { height: `${totalHeight}px`, position: 'relative' } : undefined}>
+            <div style={shouldVirtualize ? { transform: `translateY(${offsetY}px)` } : undefined}>
+            {visibleItems.map((prediction, index) => (
+              <motion.div key={prediction.id} className="prediction-card" style={{ '--i': startIndex + index }} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}>
                 <div className="prediction-header">
                   <div className="prediction-info">
                     <h4>{prediction.disease}</h4>
@@ -144,8 +169,10 @@ const HistoryPage = ({ onClose }) => {
                     🗑️ Delete
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
+            </div>
+            </div>
           </div>
         )}
       </div>

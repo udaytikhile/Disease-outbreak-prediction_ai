@@ -1,6 +1,27 @@
+// IMPROVED: Added reusable motion variants and count-up stat animations for smoother dashboard perception.
 import { usePredictionHistory } from '../hooks/usePredictionHistory'
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useMemo, useEffect } from 'react'
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+
+const STATS_CONTAINER_VARIANTS = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+}
+
+const STAT_CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+}
+
+const CountUpNumber = ({ value, suffix = '' }) => {
+    const mv = useMotionValue(0)
+    const rounded = useTransform(mv, latest => Math.round(latest))
+    useEffect(() => {
+        const controls = animate(mv, Number(value) || 0, { duration: 0.65, ease: [0.22, 1, 0.36, 1] })
+        return () => controls.stop()
+    }, [mv, value])
+    return <motion.span>{rounded}{suffix}</motion.span>
+}
 
 const Dashboard = ({ onClose }) => {
     const { history, statistics: stats, exportAsCSV, exportAsJSON } = usePredictionHistory()
@@ -144,40 +165,32 @@ const Dashboard = ({ onClose }) => {
                 <>
                     {/* Summary Cards */}
                     {/* #3: CSS modifier classes instead of inline styles */}
-                    <MotionDiv
-                        className="dashboard-stats"
-                        initial="hidden"
-                        animate="visible"
-                        variants={{
-                            hidden: { opacity: 0 },
-                            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-                        }}
-                    >
-                        <MotionDiv className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                    <MotionDiv className="dashboard-stats" initial="hidden" animate="visible" variants={STATS_CONTAINER_VARIANTS}>
+                        <MotionDiv className="dash-stat-card" variants={STAT_CARD_VARIANTS}>
                             <div className="dash-stat-icon dash-stat-icon--primary" aria-hidden="true">🧬</div>
                             <div className="dash-stat-info">
-                                <div className="dash-stat-number">{totalFiltered}</div>
+                                <div className="dash-stat-number"><CountUpNumber value={totalFiltered} /></div>
                                 <div className="dash-stat-label">Total Predictions</div>
                             </div>
                         </MotionDiv>
-                        <MotionDiv className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                        <MotionDiv className="dash-stat-card" variants={STAT_CARD_VARIANTS}>
                             <div className="dash-stat-icon dash-stat-icon--danger">⚠️</div>
                             <div className="dash-stat-info">
-                                <div className="dash-stat-number">{highRiskFiltered}</div>
+                                <div className="dash-stat-number"><CountUpNumber value={highRiskFiltered} /></div>
                                 <div className="dash-stat-label">High Risk</div>
                             </div>
                         </MotionDiv>
-                        <MotionDiv className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                        <MotionDiv className="dash-stat-card" variants={STAT_CARD_VARIANTS}>
                             <div className="dash-stat-icon dash-stat-icon--success">✅</div>
                             <div className="dash-stat-info">
-                                <div className="dash-stat-number">{lowRiskFiltered}</div>
+                                <div className="dash-stat-number"><CountUpNumber value={lowRiskFiltered} /></div>
                                 <div className="dash-stat-label">Low Risk</div>
                             </div>
                         </MotionDiv>
-                        <MotionDiv className="dash-stat-card" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                        <MotionDiv className="dash-stat-card" variants={STAT_CARD_VARIANTS}>
                             <div className="dash-stat-icon dash-stat-icon--warning">🎯</div>
                             <div className="dash-stat-info">
-                                <div className="dash-stat-number">{avgConfFiltered.toFixed(1)}%</div>
+                                <div className="dash-stat-number"><CountUpNumber value={avgConfFiltered} suffix="%" /></div>
                                 <div className="dash-stat-label">Avg Confidence</div>
                             </div>
                         </MotionDiv>

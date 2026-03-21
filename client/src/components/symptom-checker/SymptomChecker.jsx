@@ -1,5 +1,6 @@
+// IMPROVED: Replaced direct fetch calls with symptomApi abstractions to keep network logic outside UI components.
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { fetchWithTimeout } from '../../api/client'
+import { checkSymptoms, submitFollowup } from '../../api/symptomApi'
 import BodyMap from './BodyMap'
 import { REGION_SYMPTOMS } from './constants'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -222,17 +223,12 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     }])
 
     try {
-      const response = await fetchWithTimeout('/symptom-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symptoms,
-          age: demographics.age || undefined,
-          sex: demographics.sex || undefined,
-          severity_map: severityMap,
-        }),
+      const data = await checkSymptoms({
+        symptoms,
+        age: demographics.age || undefined,
+        sex: demographics.sex || undefined,
+        severityMap,
       })
-      const data = await response.json()
 
       if (data.success) {
         setAnalysisResult(data.analysis)
@@ -274,18 +270,13 @@ const SymptomChecker = ({ onClose, onStartAssessment }) => {
     }])
 
     try {
-      const response = await fetchWithTimeout('/symptom-followup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symptoms,
-          answers: followUpAnswers,
-          age: demographics.age || undefined,
-          sex: demographics.sex || undefined,
-          severity_map: severityMap,
-        }),
+      const data = await submitFollowup({
+        symptoms,
+        answers: followUpAnswers,
+        age: demographics.age || undefined,
+        sex: demographics.sex || undefined,
+        severityMap,
       })
-      const data = await response.json()
       if (data.success) {
         setAnalysisResult(data.analysis)
         setMessages(prev => [...prev, {

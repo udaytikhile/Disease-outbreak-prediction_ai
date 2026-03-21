@@ -1,3 +1,4 @@
+// IMPROVED: Wired progress bar to loading state for smoother in-flight feedback.
 import { useState, useMemo } from 'react'
 import { InputCard, Section, ProgressBar } from '../common/FormComponents'
 import { convertNumericFields } from '../../utils/formUtils'
@@ -57,7 +58,7 @@ const DiabetesForm = ({ onSubmit, loading }) => {
 
     return (
         <form onSubmit={handleSubmit} onBlur={handleBlur}>
-            <ProgressBar percent={progress} />
+            <ProgressBar percent={progress} loading={loading} />
 
             {/* ── Demographics ── */}
             <Section icon="👤" title="Demographics" subtitle="Age, sex, and socioeconomic factors">

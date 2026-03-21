@@ -1,61 +1,17 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+// IMPROVED: Delegates persistence/reconciliation to useSyncedHistory and documents localStorage-first architecture.
+import { useCallback, useMemo } from 'react'
+import { useSyncedHistory } from './useSyncedHistory'
 
-const STORAGE_KEY = 'prediction_history'
+/**
+ * IMPROVED: History architecture now uses a unified sync layer.
+ * localStorage remains the immediate source for instant UX/offline continuity,
+ * while API-backed history can later hydrate/merge through this same hook
+ * without changing downstream UI consumers.
+ */
 const MAX_HISTORY = 100 // Store max 100 predictions
 
-// Custom event name for cross-component sync
-const SYNC_EVENT = 'prediction_history_updated'
-
 export const usePredictionHistory = () => {
-  const [history, setHistory] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      return saved ? JSON.parse(saved) : []
-    } catch (e) {
-      console.error('Failed to load history:', e)
-      return []
-    }
-  })
-
-  // Ref to skip self-triggered sync events (Bug #6 fix)
-  const isSelfUpdate = useRef(false)
-
-  // Listen for changes from other component instances using this hook
-  useEffect(() => {
-    const handleSync = () => {
-      if (isSelfUpdate.current) {
-        isSelfUpdate.current = false
-        return
-      }
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY)
-        setHistory(saved ? JSON.parse(saved) : [])
-      } catch (e) {
-        console.error('Failed to sync history:', e)
-      }
-    }
-
-    const handleStorageEvent = (e) => {
-      if (e.key === STORAGE_KEY) handleSync()
-    }
-
-    window.addEventListener(SYNC_EVENT, handleSync)
-    // Also sync on storage changes (e.g. from other tabs)
-    window.addEventListener('storage', handleStorageEvent)
-
-    return () => {
-      window.removeEventListener(SYNC_EVENT, handleSync)
-      window.removeEventListener('storage', handleStorageEvent)
-    }
-  }, [])
-
-  // Helper to persist and broadcast changes
-  const persistAndBroadcast = useCallback((updated) => {
-    isSelfUpdate.current = true
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-    // Dispatch custom event so other hook instances sync
-    window.dispatchEvent(new Event(SYNC_EVENT))
-  }, [])
+  const { history, setHistory, persistHistory, clearSyncedHistory } = useSyncedHistory()
 
   // Save prediction to history
   const addPrediction = useCallback((prediction) => {
@@ -67,26 +23,24 @@ export const usePredictionHistory = () => {
 
     setHistory(prev => {
       const updated = [newPrediction, ...prev].slice(0, MAX_HISTORY)
-      persistAndBroadcast(updated)
+      persistHistory(updated)
       return updated
     })
-  }, [persistAndBroadcast])
+  }, [persistHistory, setHistory])
 
   // Delete prediction from history
   const deletePrediction = useCallback((id) => {
     setHistory(prev => {
       const updated = prev.filter(p => p.id !== id)
-      persistAndBroadcast(updated)
+      persistHistory(updated)
       return updated
     })
-  }, [persistAndBroadcast])
+  }, [persistHistory, setHistory])
 
   // Clear all history
   const clearHistory = useCallback(() => {
-    setHistory([])
-    localStorage.removeItem(STORAGE_KEY)
-    window.dispatchEvent(new Event(SYNC_EVENT))
-  }, [])
+    clearSyncedHistory()
+  }, [clearSyncedHistory])
 
   // Pre-computed statistics (referentially stable when history hasn't changed)
   const statistics = useMemo(() => {

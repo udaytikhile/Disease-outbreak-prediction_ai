@@ -1,3 +1,4 @@
+// IMPROVED: Standardized logo asset import usage to avoid string path references.
 import { Link } from 'react-router-dom'
 import heartDiseaseImg from '../assets/heart-disease.png'
 import diabetesImg from '../assets/diabetes.png'
@@ -7,6 +8,7 @@ import featureAiImg from '../assets/feature-ai.png'
 import featureScreeningImg from '../assets/feature-screening.png'
 import featurePrivacyImg from '../assets/feature-privacy.png'
 import featureReportsImg from '../assets/feature-reports.png'
+import logoIcon from '../assets/logo-icon.png'
 
 const HomePage = ({ onSelectDisease, onViewChecker }) => {
     const diseases = [
@@ -277,7 +279,7 @@ const HomePage = ({ onSelectDisease, onViewChecker }) => {
                 <div className="clinical-container">
                     <div className="clinical-footer-grid">
                         <div className="clinical-footer-brand">
-                            <img src="/logo.png" alt="Medixa AI" className="footer-logo-img" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
+                            <img src={logoIcon} alt="Medixa AI" className="footer-logo-img" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
                             <h3>Medixa AI</h3>
                             <p>AI-Powered Clinical Health Screening Platform. Empowering early detection through intelligent risk assessment.</p>
                         </div>

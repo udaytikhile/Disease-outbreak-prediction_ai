@@ -1,6 +1,4 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Symptom Checker Chat — Conversational AI UI
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* IMPROVED: Added smoother message transitions, refined markdown typography/code block styling, and more cohesive conversational micro-interactions for chat readability. */
 
 .chat-container {
   display: flex;
@@ -84,7 +82,7 @@
   display: flex;
   gap: 0.75rem;
   max-width: 85%;
-  animation: chatFadeIn 0.3s ease;
+  animation: chatFadeIn 0.24s var(--transition-easing);
 }
 
 .chat-bubble.user {
@@ -129,6 +127,50 @@
 
 .chat-bubble-content p {
   margin: 0 0 0.5rem;
+}
+
+.md-h1,
+.md-h2 {
+  margin: 0.4rem 0;
+  line-height: var(--leading-snug);
+}
+
+.md-h1 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.md-h2 {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.md-list {
+  margin: 0.45rem 0 0.45rem 1rem;
+  padding: 0;
+}
+
+.md-list-item {
+  margin: 0.28rem 0;
+}
+
+.md-inline-code {
+  font-size: var(--text-sm);
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.md-code-block {
+  display: block;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin-top: 0.6rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+  background: #0f172a;
+  color: #e2e8f0;
+  overflow-x: auto;
 }
 
 .chat-bubble-content p:last-child {

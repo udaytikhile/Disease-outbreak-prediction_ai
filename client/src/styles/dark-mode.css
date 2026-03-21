@@ -1,29 +1,102 @@
-/* ========================================
-   DARK MODE THEME
-   ======================================== */
+/* IMPROVED: Dark theme now overrides full color token palette via [data-theme="dark"] for deterministic manual theme switching without media-query coupling. */
 
 [data-theme="dark"] {
-  --primary-color: #818cf8;
-  --secondary-color: #a78bfa;
-  --success-color: #34d399;
-  --danger-color: #f87171;
-  --text-dark: #f1f5f9;
-  --text-light: #94a3b8;
-  --bg-light: #1e293b;
-  --bg-white: #0f172a;
-  --bg-page: #0b1120;
-  --border-color: #1e293b;
+  --color-primary-50: #1f2348;
+  --color-primary-100: #242956;
+  --color-primary-200: #2c3270;
+  --color-primary-300: #4b57af;
+  --color-primary-400: #6570d5;
+  --color-primary-500: #818cf8;
+  --color-primary-600: #99a2ff;
+  --color-primary-700: #b2b9ff;
+  --color-primary-800: #c6cbff;
+  --color-primary-900: #dce0ff;
 
-  --glass-bg: rgba(15, 23, 42, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --accent-glow: 0 0 30px rgba(129, 140, 248, 0.15);
+  --color-surface-50: #0b1220;
+  --color-surface-100: #0f172a;
+  --color-surface-200: #162136;
+  --color-surface-300: #1e293b;
+  --color-surface-400: #334155;
+  --color-surface-500: #475569;
+  --color-surface-600: #64748b;
+  --color-surface-700: #94a3b8;
+  --color-surface-800: #cbd5e1;
+  --color-surface-900: #e2e8f0;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
-  --shadow-primary: 0 4px 14px rgba(129, 140, 248, 0.25);
+  --color-border-50: #0f172a;
+  --color-border-100: #162136;
+  --color-border-200: #223047;
+  --color-border-300: #2d3f58;
+  --color-border-400: #41516a;
+  --color-border-500: #5f6d84;
+  --color-border-600: #7b8ba1;
+  --color-border-700: #a5b1c2;
+  --color-border-800: #c8d2e2;
+  --color-border-900: #e2e8f0;
+
+  --color-muted-50: #111827;
+  --color-muted-100: #1f2937;
+  --color-muted-200: #293548;
+  --color-muted-300: #3f4b61;
+  --color-muted-400: #64748b;
+  --color-muted-500: #8ca1b8;
+  --color-muted-600: #a7b8ca;
+  --color-muted-700: #c5d0dd;
+  --color-muted-800: #d9e1eb;
+  --color-muted-900: #ecf2f8;
+
+  --color-success-50: #052e24;
+  --color-success-100: #064737;
+  --color-success-200: #0b5f49;
+  --color-success-300: #0f7f62;
+  --color-success-400: #1e9f7d;
+  --color-success-500: #34d399;
+  --color-success-600: #57e0ac;
+  --color-success-700: #84eec4;
+  --color-success-800: #b6f8de;
+  --color-success-900: #d4fdea;
+
+  --color-warning-50: #351a05;
+  --color-warning-100: #4d2807;
+  --color-warning-200: #6c3a0a;
+  --color-warning-300: #8f500e;
+  --color-warning-400: #b36a14;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #f8b83d;
+  --color-warning-700: #facc71;
+  --color-warning-800: #fde1ab;
+  --color-warning-900: #fff0d1;
+
+  --color-danger-50: #3a0f16;
+  --color-danger-100: #55121d;
+  --color-danger-200: #721827;
+  --color-danger-300: #942133;
+  --color-danger-400: #b92f45;
+  --color-danger-500: #f87171;
+  --color-danger-600: #fb8f8f;
+  --color-danger-700: #fcb0b0;
+  --color-danger-800: #fdcdcd;
+  --color-danger-900: #fee4e4;
+
+  --primary-color: var(--color-primary-500);
+  --secondary-color: var(--color-primary-700);
+  --success-color: var(--color-success-500);
+  --danger-color: var(--color-danger-500);
+  --text-dark: var(--color-surface-900);
+  --text-light: var(--color-muted-500);
+  --bg-light: var(--color-surface-300);
+  --bg-white: var(--color-surface-100);
+  --bg-page: var(--color-surface-50);
+  --border-color: var(--color-border-200);
+
+  --glass-bg: rgba(15, 23, 42, 0.78);
+  --glass-border: rgba(148, 163, 184, 0.12);
+  --glass-shadow: 0 18px 38px rgba(2, 6, 23, 0.52);
+
+  --shadow-sm: 0 2px 6px rgba(2, 6, 23, 0.35);
+  --shadow-md: 0 12px 28px rgba(2, 6, 23, 0.4);
+  --shadow-lg: 0 22px 44px rgba(2, 6, 23, 0.5);
+  --shadow-glow: 0 0 0 3px rgba(129, 140, 248, 0.18), 0 18px 35px rgba(99, 102, 241, 0.24);
 }
 
 [data-theme="dark"] body {

@@ -37,7 +37,7 @@
   left: 0;
   height: 3px;
   background: rgba(255, 255, 255, 0.4);
-  animation: toastTimer 4s linear forwards;
+  animation: toastTimer var(--toast-duration, 4000ms) linear forwards;
 }
 
 .toast-success {
@@ -91,7 +91,7 @@
 }
 
 .toast-enter {
-  animation: toastSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: toastSlideIn 0.46s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .toast-exit {

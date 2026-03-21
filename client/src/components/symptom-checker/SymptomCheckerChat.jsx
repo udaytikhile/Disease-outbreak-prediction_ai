@@ -1,9 +1,15 @@
+// IMPROVED: Added motion-based message entrance and richer markdown rendering styles for improved chat readability and feel.
 import { useState, useRef, useEffect } from 'react'
 import { getCheckerMode, chatSymptomChecker, endChatSession } from '../../api/symptomApi'
 import ReactMarkdown from 'react-markdown'
+import { motion, AnimatePresence } from 'framer-motion'
 import '../../styles/symptom-checker-chat.css'
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+const MESSAGE_VARIANTS = {
+    hidden: { opacity: 0, y: 18 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+}
 
 function sanitizeHref(href) {
     if (!href || typeof href !== 'string') return null
@@ -151,10 +157,14 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
 
             {/* Messages */}
             <div className="chat-messages" role="log" aria-live="polite">
+                <AnimatePresence initial={false}>
                 {messages.map((msg, idx) => (
-                    <div
+                    <motion.div
                         key={idx}
                         className={`chat-bubble ${msg.role} ${msg.isEmergency ? 'emergency' : ''} ${msg.isError ? 'error' : ''}`}
+                        variants={MESSAGE_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
                     >
                         {msg.role === 'assistant' && (
                             <div className="chat-avatar" aria-hidden="true">🤖</div>
@@ -163,6 +173,13 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                             {msg.role === 'assistant' ? (
                                 <ReactMarkdown
                                     components={{
+                                        code: ({ inline, children }) =>
+                                            inline ? <code className="md-inline-code">{children}</code> : <code className="md-code-block">{children}</code>,
+                                        h1: ({ children }) => <h3 className="md-h1">{children}</h3>,
+                                        h2: ({ children }) => <h4 className="md-h2">{children}</h4>,
+                                        ul: ({ children }) => <ul className="md-list">{children}</ul>,
+                                        ol: ({ children }) => <ol className="md-list">{children}</ol>,
+                                        li: ({ children }) => <li className="md-list-item">{children}</li>,
                                         a: ({ href, children, ...props }) => {
                                             const safe = sanitizeHref(href)
                                             if (!safe) return <span {...props}>{children}</span>
@@ -213,16 +230,17 @@ const SymptomCheckerChat = ({ onClose, onStartAssessment }) => {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
+                </AnimatePresence>
 
                 {loading && (
-                    <div className="chat-bubble assistant">
+                    <motion.div className="chat-bubble assistant" variants={MESSAGE_VARIANTS} initial="hidden" animate="visible">
                         <div className="chat-avatar" aria-hidden="true">🤖</div>
                         <div className="chat-typing">
                             <span></span><span></span><span></span>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
 
                 <div ref={messagesEndRef} />

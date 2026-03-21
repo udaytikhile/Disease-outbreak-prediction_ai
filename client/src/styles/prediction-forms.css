@@ -154,6 +154,14 @@
   position: relative;
 }
 
+.med-progress-fill.is-loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: progressShimmer 1s linear infinite;
+}
+
 .med-progress-fill::after {
   content: '';
   position: absolute;
@@ -501,6 +509,23 @@
   font-weight: 600;
   color: #ef4444;
   letter-spacing: 0.1px;
+}
+
+.med-field-error-shake {
+  animation: shakeX 360ms ease;
+}
+
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes progressShimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
 }
 
 /* ── Sticky Predict Button ── */

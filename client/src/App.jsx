@@ -1,3 +1,4 @@
+// IMPROVED: Added route-level AnimatePresence transitions and shell layout wrappers for smoother navigation and cleaner global structure.
 /**
  * App — Root application component (routing shell).
  *
@@ -12,6 +13,7 @@
  */
 import { useEffect, useMemo, lazy, Suspense } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { PredictionProvider } from './context/PredictionContext'
 import { usePrediction } from './hooks/usePrediction'
 
@@ -40,6 +42,12 @@ const Dashboard = lazy(() => import('./pages/DashboardPage'))
 const SymptomChecker = lazy(() => import('./components/symptom-checker/SymptomChecker'))
 const SymptomCheckerChat = lazy(() => import('./components/symptom-checker/SymptomCheckerChat'))
 
+const PAGE_TRANSITION = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -16 },
+  transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
+}
 
 
 
@@ -82,70 +90,66 @@ function AppRoutes() {
       <ToastContainer />
       {loading && <LoadingAnalysis disease={loadingDisease} />}
       <ErrorBoundary>
-        <main id="main-content">
+        <main id="main-content" className="app-shell">
           <Suspense fallback={<LoadingAnalysis disease="app" />}>
-            <Routes>
-              {/* Home */}
-              <Route path="/" element={
-                <HomePage
-                  onSelectDisease={(id) => navigate(`/predict/${id}`)}
-                  onViewHistory={() => navigate('/history')}
-                  onViewProfile={() => navigate('/profile')}
-                  onViewTips={() => navigate('/tips')}
-                  onViewDashboard={() => navigate('/dashboard')}
-                  onViewChecker={() => navigate('/checker')}
-                  userName={userName}
-                />
-              } />
+            <AnimatePresence mode="wait">
+              <motion.div key={location.pathname} {...PAGE_TRANSITION}>
+                <Routes>
+                  <Route path="/" element={
+                    <HomePage
+                      onSelectDisease={(id) => navigate(`/predict/${id}`)}
+                      onViewHistory={() => navigate('/history')}
+                      onViewProfile={() => navigate('/profile')}
+                      onViewTips={() => navigate('/tips')}
+                      onViewDashboard={() => navigate('/dashboard')}
+                      onViewChecker={() => navigate('/checker')}
+                      userName={userName}
+                    />
+                  } />
 
-              {/* Prediction Forms */}
-              <Route path="/predict/heart" element={
-                <PredictionLayout title="❤️ Heart Disease Prediction" error={error} result={result}>
-                  <HeartForm onSubmit={(data) => handlePrediction('heart', data)} loading={loading} />
-                </PredictionLayout>
-              } />
+                  <Route path="/predict/heart" element={
+                    <PredictionLayout title="❤️ Heart Disease Prediction" error={error} result={result}>
+                      <HeartForm onSubmit={(data) => handlePrediction('heart', data)} loading={loading} />
+                    </PredictionLayout>
+                  } />
+                  <Route path="/predict/diabetes" element={
+                    <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result} bgClass="diabetes-bg">
+                      <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
+                    </PredictionLayout>
+                  } />
+                  <Route path="/predict/kidney" element={
+                    <PredictionLayout title="🫘 Kidney Disease Prediction" error={error} result={result}>
+                      <KidneyForm onSubmit={(data) => handlePrediction('kidney', data)} loading={loading} />
+                    </PredictionLayout>
+                  } />
+                  <Route path="/predict/depression" element={
+                    <PredictionLayout title="🧠 Depression Screening" error={error} result={result}>
+                      <DepressionForm onSubmit={(data) => handlePrediction('depression', data)} loading={loading} />
+                    </PredictionLayout>
+                  } />
 
-              <Route path="/predict/diabetes" element={
-                <PredictionLayout title="🩺 Diabetes Prediction" error={error} result={result} bgClass="diabetes-bg">
-                  <DiabetesForm onSubmit={(data) => handlePrediction('diabetes', data)} loading={loading} />
-                </PredictionLayout>
-              } />
-
-              <Route path="/predict/kidney" element={
-                <PredictionLayout title="🫘 Kidney Disease Prediction" error={error} result={result}>
-                  <KidneyForm onSubmit={(data) => handlePrediction('kidney', data)} loading={loading} />
-                </PredictionLayout>
-              } />
-
-              <Route path="/predict/depression" element={
-                <PredictionLayout title="🧠 Depression Screening" error={error} result={result}>
-                  <DepressionForm onSubmit={(data) => handlePrediction('depression', data)} loading={loading} />
-                </PredictionLayout>
-              } />
-
-              {/* Feature Pages */}
-              <Route path="/history" element={<HistoryPage onClose={() => navigate('/')} />} />
-              <Route path="/profile" element={<UserProfile onClose={() => navigate('/')} />} />
-              <Route path="/tips" element={<HealthTips onClose={() => navigate('/')} />} />
-              <Route path="/dashboard" element={<Dashboard onClose={() => navigate('/')} />} />
-              <Route path="/terms" element={<TermsOfUsePage onClose={() => navigate(-1)} />} />
-              <Route path="/privacy" element={<PrivacyPolicyPage onClose={() => navigate(-1)} />} />
-              <Route path="/checker" element={
-                <SymptomChecker
-                  onClose={() => navigate('/')}
-                  onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
-                />
-              } />
-              <Route path="/chat" element={
-                <SymptomCheckerChat
-                  onClose={() => navigate('/')}
-                  onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
-                />
-              } />
-
-              {/* 404 catch-all */}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
+                  <Route path="/history" element={<HistoryPage onClose={() => navigate('/')} />} />
+                  <Route path="/profile" element={<UserProfile onClose={() => navigate('/')} />} />
+                  <Route path="/tips" element={<HealthTips onClose={() => navigate('/')} />} />
+                  <Route path="/dashboard" element={<Dashboard onClose={() => navigate('/')} />} />
+                  <Route path="/terms" element={<TermsOfUsePage onClose={() => navigate(-1)} />} />
+                  <Route path="/privacy" element={<PrivacyPolicyPage onClose={() => navigate(-1)} />} />
+                  <Route path="/checker" element={
+                    <SymptomChecker
+                      onClose={() => navigate('/')}
+                      onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
+                    />
+                  } />
+                  <Route path="/chat" element={
+                    <SymptomCheckerChat
+                      onClose={() => navigate('/')}
+                      onStartAssessment={(disease) => navigate(`/predict/${disease}`)}
+                    />
+                  } />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </motion.div>
+            </AnimatePresence>
           </Suspense>
         </main>
       </ErrorBoundary>

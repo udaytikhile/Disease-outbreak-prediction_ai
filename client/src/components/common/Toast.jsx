@@ -1,3 +1,4 @@
+// IMPROVED: Added per-toast duration styling hook to sync auto-dismiss progress animation with each toast's lifetime.
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toastEmitter } from '../../utils/events'
 
@@ -9,7 +10,8 @@ const ToastContainer = () => {
 
     const addToast = useCallback(({ message, type, duration }) => {
         const id = ++toastIdCounter
-        setToasts(prev => [...prev, { id, message, type, exiting: false }])
+        const safeDuration = Number(duration) > 0 ? Number(duration) : 4000
+        setToasts(prev => [...prev, { id, message, type, exiting: false, duration: safeDuration }])
 
         const exitTimeout = setTimeout(() => {
             setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t))
@@ -18,7 +20,7 @@ const ToastContainer = () => {
                 timeoutRefs.current.delete(id)
             }, 400)
             timeoutRefs.current.set(`${id}-remove`, removeTimeout)
-        }, duration)
+        }, safeDuration)
         timeoutRefs.current.set(id, exitTimeout)
     }, [])
 
@@ -60,6 +62,7 @@ const ToastContainer = () => {
                     key={toast.id}
                     className={`toast toast-${toast.type} ${toast.exiting ? 'toast-exit' : 'toast-enter'}`}
                     role={toast.type === 'error' ? 'alert' : 'status'}
+                    style={{ '--toast-duration': `${toast.duration || 4000}ms` }}
                 >
                     <span className="toast-icon" aria-hidden="true">{icons[toast.type]}</span>
                     <span className="toast-message">{toast.message}</span>
