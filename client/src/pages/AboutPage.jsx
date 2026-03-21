@@ -8,33 +8,36 @@ const AboutPage = ({ onClose }) => {
         window.scrollTo(0, 0)
     }, [])
 
+    // To use real photos, upload them to the client/src/assets folder,
+    // import them at the top of the file (e.g., import udayImg from '../assets/uday.jpg')
+    // and replace the 'image' string with the imported variable (e.g., image: udayImg).
     const team = [
         {
             name: 'Uday Tikhile',
             role: 'Lead Developer & AI Architect',
             desc: 'Merging healthcare with artificial intelligence to build predictive systems that save lives.',
-            icon: '👨‍💻',
+            image: 'https://ui-avatars.com/api/?name=Uday+Tikhile&background=0ea5e9&color=fff&size=200&bold=true',
             highlight: true
         },
         {
             name: 'Amit Wadode',
             role: 'UI/UX Design',
             desc: 'Ensuring the platform is clean, intuitive, and easy to use for everyone.',
-            icon: '🎨',
+            image: 'https://ui-avatars.com/api/?name=Amit+Wadode&background=64748b&color=fff&size=200&bold=true',
             highlight: false
         },
         {
             name: 'Om Itnare',
             role: 'Backend & Database Manager',
             desc: 'Managing data processing, system logic, and performance optimization.',
-            icon: '⚙️',
+            image: 'https://ui-avatars.com/api/?name=Om+Itnare&background=64748b&color=fff&size=200&bold=true',
             highlight: false
         },
         {
             name: 'Ujjwal Itnare',
             role: 'Content, Testing & Growth',
             desc: 'Ensuring accuracy, improving user experience, and helping the platform reach more users.',
-            icon: '📈',
+            image: 'https://ui-avatars.com/api/?name=Ujjwal+Itnare&background=64748b&color=fff&size=200&bold=true',
             highlight: false
         }
     ]
@@ -112,7 +115,13 @@ const AboutPage = ({ onClose }) => {
                                 className={`team-card ${member.highlight ? 'team-lead' : ''}`}
                                 whileHover={{ y: -8, transition: { duration: 0.2 } }}
                             >
-                                <div className="team-avatar">{member.icon}</div>
+                                <div className="team-avatar">
+                                    {member.image ? (
+                                        <img src={member.image} alt={`${member.name} photo`} />
+                                    ) : (
+                                        member.icon
+                                    )}
+                                </div>
                                 <h3 className="team-name">{member.name}</h3>
                                 <div className="team-role">{member.role}</div>
                                 <p className="team-desc">{member.desc}</p>
