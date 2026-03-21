@@ -17,24 +17,24 @@ const AboutPage = ({ onClose }) => {
             highlight: true
         },
         {
-            name: 'Dr. Sarah Chen',
-            role: 'Medical Advisor',
-            desc: 'Ensuring our machine learning models align with rigorous clinical diagnostic standards.',
-            icon: '👩‍⚕️',
-            highlight: false
-        },
-        {
-            name: 'James Wilson',
-            role: 'Data Scientist',
-            desc: 'Optimizing and validating our predictive algorithms using vast global health datasets.',
-            icon: '📊',
-            highlight: false
-        },
-        {
-            name: 'Elena Rodriguez',
-            role: 'UX Researcher',
-            desc: 'Designing intuitive interfaces that make complex health data accessible to everyone.',
+            name: 'Amit Wadode',
+            role: 'UI/UX Design',
+            desc: 'Ensuring the platform is clean, intuitive, and easy to use for everyone.',
             icon: '🎨',
+            highlight: false
+        },
+        {
+            name: 'Om Itnare',
+            role: 'Backend & Database Manager',
+            desc: 'Managing data processing, system logic, and performance optimization.',
+            icon: '⚙️',
+            highlight: false
+        },
+        {
+            name: 'Ujjwal Itnare',
+            role: 'Content, Testing & Growth',
+            desc: 'Ensuring accuracy, improving user experience, and helping the platform reach more users.',
+            icon: '📈',
             highlight: false
         }
     ]
